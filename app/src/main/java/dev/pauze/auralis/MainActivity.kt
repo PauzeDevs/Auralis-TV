@@ -83,7 +83,12 @@ internal fun updatedRecentPackages(current: List<String>, packageName: String): 
 private suspend fun requestInitialFocus(requestFocus: () -> Boolean) {
     repeat(5) {
         withFrameNanos { }
-        if (requestFocus()) return
+        val focused = try {
+            requestFocus()
+        } catch (_: IllegalStateException) {
+            false
+        }
+        if (focused) return
     }
 }
 
@@ -121,9 +126,7 @@ class MainActivity : ComponentActivity() {
                                 .apply()
                         }
                     },
-                    onOpenSettings = {
-                        startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
-                    }
+                    onOpenSettings = { openSystemSettings() }
                 )
             }
         }
@@ -165,6 +168,24 @@ class MainActivity : ComponentActivity() {
                     appsLoading = false
                 }
             }
+        }
+    }
+
+    private fun openSystemSettings() {
+        try {
+            startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
+        } catch (exception: ActivityNotFoundException) {
+            Toast.makeText(
+                this,
+                "System settings aren't available on this device.",
+                Toast.LENGTH_SHORT
+            ).show()
+        } catch (exception: SecurityException) {
+            Toast.makeText(
+                this,
+                "System settings can't be opened from Auralis TV.",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
