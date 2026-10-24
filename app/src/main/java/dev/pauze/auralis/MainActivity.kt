@@ -618,10 +618,10 @@ private fun AppTile(
                 color = if (focused) Accent else Color(0xFF303034),
                 shape = RoundedCornerShape(18.dp)
             )
-            .padding(if (compact) 8.dp else 12.dp)
             .focusRequester(focusRequester)
             .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .padding(if (compact) 8.dp else 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
@@ -678,10 +678,10 @@ private fun FocusButton(
                 if (focused) Color.White else Color(0xFF343438),
                 RoundedCornerShape(22.dp)
             )
-            .padding(horizontal = 18.dp, vertical = 10.dp)
             .focusRequester(focusRequester)
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 10.dp)
     ) {
         Text(
             label,
