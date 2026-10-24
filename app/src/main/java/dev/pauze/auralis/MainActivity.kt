@@ -1,9 +1,11 @@
 package dev.pauze.auralis
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.animateFloatAsState
@@ -11,7 +13,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -36,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,7 +53,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.lifecycle.lifecycleScope
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -66,15 +74,30 @@ private val Accent = Color(0xFF63B8FF)
 private val Ink = Color(0xFF050506)
 private val TileSurface = Color(0xFF171719)
 
+internal fun updatedRecentPackages(current: List<String>, packageName: String): List<String> =
+    (listOf(packageName) + current.filterNot { it == packageName })
+        .filter { it.isNotBlank() }
+        .distinct()
+        .take(12)
+
+private suspend fun requestInitialFocus(requestFocus: () -> Boolean) {
+    repeat(5) {
+        withFrameNanos { }
+        if (requestFocus()) return
+    }
+}
+
 class MainActivity : ComponentActivity() {
     private var installedApps by mutableStateOf<List<TvApp>>(emptyList())
+    private var appsLoading by mutableStateOf(true)
+    private var appsLoadJob: Job? = null
+    private var appLoadGeneration = 0
     private var hasResumedOnce = false
     private lateinit var preferences: android.content.SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         preferences = getSharedPreferences("auralis_preferences", MODE_PRIVATE)
-        installedApps = loadApps()
 
         setContent {
             MaterialTheme {
@@ -88,18 +111,14 @@ class MainActivity : ComponentActivity() {
 
                 AuralisHome(
                     apps = installedApps,
+                    appsLoading = appsLoading,
                     recentApps = recentApps,
                     onLaunch = { app ->
-                        recentPackages = (
-                            listOf(app.packageName) +
-                                recentPackages.filterNot { it == app.packageName }
-                            ).take(12)
-                        preferences.edit()
-                            .putString(RECENT_PACKAGES_KEY, recentPackages.joinToString("\n"))
-                            .apply()
-
-                        packageManager.getLaunchIntentForPackage(app.packageName)?.let {
-                            startActivity(it)
+                        if (launchApp(app)) {
+                            recentPackages = updatedRecentPackages(recentPackages, app.packageName)
+                            preferences.edit()
+                                .putString(RECENT_PACKAGES_KEY, recentPackages.joinToString("\n"))
+                                .apply()
                         }
                     },
                     onOpenSettings = {
@@ -108,14 +127,78 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+
+        refreshApps()
     }
 
     override fun onResume() {
         super.onResume()
         if (hasResumedOnce) {
-            installedApps = loadApps()
+            refreshApps()
         }
         hasResumedOnce = true
+    }
+
+    private fun refreshApps() {
+        val generation = ++appLoadGeneration
+        appsLoadJob?.cancel()
+        appsLoading = true
+        appsLoadJob = lifecycleScope.launch {
+            try {
+                val apps = withContext(Dispatchers.IO) { loadApps() }
+                if (generation == appLoadGeneration) {
+                    installedApps = apps
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (exception: Exception) {
+                if (generation == appLoadGeneration) {
+                    installedApps = emptyList()
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Unable to load installed apps.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } finally {
+                if (generation == appLoadGeneration) {
+                    appsLoading = false
+                }
+            }
+        }
+    }
+
+    private fun launchApp(app: TvApp): Boolean {
+        return try {
+            val launchIntent = packageManager.getLaunchIntentForPackage(app.packageName)
+            if (launchIntent == null) {
+                Toast.makeText(
+                    this,
+                    "${app.label} is no longer available.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                refreshApps()
+                false
+            } else {
+                startActivity(launchIntent)
+                true
+            }
+        } catch (exception: ActivityNotFoundException) {
+            Toast.makeText(
+                this,
+                "Couldn't open ${app.label}. Refreshing apps.",
+                Toast.LENGTH_SHORT
+            ).show()
+            refreshApps()
+            false
+        } catch (exception: SecurityException) {
+            Toast.makeText(
+                this,
+                "Permission denied while opening ${app.label}.",
+                Toast.LENGTH_SHORT
+            ).show()
+            false
+        }
     }
 
     private fun readRecentPackages(): List<String> =
@@ -123,6 +206,7 @@ class MainActivity : ComponentActivity() {
             .orEmpty()
             .split("\n")
             .filter { it.isNotBlank() }
+            .distinct()
             .take(12)
 
     private fun loadApps(): List<TvApp> {
@@ -163,6 +247,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun AuralisHome(
     apps: List<TvApp>,
+    appsLoading: Boolean,
     recentApps: List<TvApp>,
     onLaunch: (TvApp) -> Unit,
     onOpenSettings: () -> Unit
@@ -274,13 +359,13 @@ private fun AuralisHome(
                 Spacer(Modifier.height(if (compact) 12.dp else 20.dp))
                 SectionHeading(
                     title = "Your apps",
-                    detail = "${apps.size} available"
+                    detail = if (appsLoading) "Loading…" else "${apps.size} available"
                 )
                 Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
 
                 if (apps.isEmpty()) {
                     Text(
-                        "No launchable apps found. Try restarting Auralis TV.",
+                        if (appsLoading) "Finding your apps…" else "No launchable apps found. Try restarting Auralis TV.",
                         color = Color(0xFFADB7C6),
                         fontSize = 15.sp
                     )
@@ -308,7 +393,7 @@ private fun AuralisHome(
                     Spacer(Modifier.weight(1f))
                     FocusButton(
                         label = "System settings",
-                        initialFocus = apps.isEmpty(),
+                        initialFocus = !appsLoading && apps.isEmpty(),
                         onClick = onOpenSettings
                     )
                 }
@@ -335,8 +420,7 @@ private fun TopShelf(
 
     LaunchedEffect(initialFocus, app?.packageName) {
         if (initialFocus) {
-            delay(180)
-            runCatching { focusRequester.requestFocus() }
+            requestInitialFocus { focusRequester.requestFocus() }
         }
     }
 
@@ -365,7 +449,6 @@ private fun TopShelf(
                     Modifier
                         .focusRequester(focusRequester)
                         .onFocusChanged { focused = it.isFocused }
-                        .focusable()
                         .clickable { onLaunch(app) }
                 } else {
                     Modifier
@@ -499,8 +582,7 @@ private fun AppTile(
 
     LaunchedEffect(initialFocus) {
         if (initialFocus) {
-            delay(180)
-            runCatching { focusRequester.requestFocus() }
+            requestInitialFocus { focusRequester.requestFocus() }
         }
     }
 
@@ -515,11 +597,10 @@ private fun AppTile(
                 color = if (focused) Accent else Color(0xFF303034),
                 shape = RoundedCornerShape(18.dp)
             )
+            .padding(if (compact) 8.dp else 12.dp)
             .focusRequester(focusRequester)
             .onFocusChanged { focused = it.isFocused }
-            .focusable()
-            .clickable(onClick = onClick)
-            .padding(if (compact) 8.dp else 12.dp),
+            .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
@@ -562,8 +643,7 @@ private fun FocusButton(
 
     LaunchedEffect(initialFocus) {
         if (initialFocus) {
-            delay(180)
-            runCatching { focusRequester.requestFocus() }
+            requestInitialFocus { focusRequester.requestFocus() }
         }
     }
 
@@ -577,11 +657,10 @@ private fun FocusButton(
                 if (focused) Color.White else Color(0xFF343438),
                 RoundedCornerShape(22.dp)
             )
+            .padding(horizontal = 18.dp, vertical = 10.dp)
             .focusRequester(focusRequester)
             .onFocusChanged { focused = it.isFocused }
-            .focusable()
             .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 10.dp)
     ) {
         Text(
             label,
