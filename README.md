@@ -1,12 +1,22 @@
 <div align="center">
 
-# Auralis TV
+<img src="https://readme-typing-svg.demolab.com?font=Inter&weight=600&size=32&pause=1200&color=7C8798&center=true&vCenter=true&width=600&lines=Auralis+TV;A+better+TV+home" alt="Auralis TV" />
 
 **A clean, cinematic launcher for Android TV and Google TV.**
 
-A minimal, remote-friendly home screen inspired by the feel of tvOS.
+<p>
+  <a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/github/actions/workflow/status/PauzeDevs/Auralis-TV/android.yml?branch=main&style=flat-square&label=Build&color=64748B" alt="Build status" /></a>
+  <img src="https://img.shields.io/badge/Platform-Android%20TV%20%2F%20Google%20TV-64748B?style=flat-square" alt="Platform" />
+  <a href="https://github.com/PauzeDevs/Auralis-TV/releases"><img src="https://img.shields.io/github/v/release/PauzeDevs/Auralis-TV?style=flat-square&label=Release&color=64748B" alt="Latest release" /></a>
+  <a href="https://github.com/PauzeDevs/Auralis-TV/blob/main/LICENSE"><img src="https://img.shields.io/github/license/PauzeDevs/Auralis-TV?style=flat-square&color=64748B" alt="License" /></a>
+</p>
 
-[Repository](https://github.com/PauzeDevs/Auralis-TV) · [Builds](https://github.com/PauzeDevs/Auralis-TV/actions) · [Issues](https://github.com/PauzeDevs/Auralis-TV/issues) · [Discussions](https://github.com/PauzeDevs/Auralis-TV/discussions)
+<p>
+  <a href="https://github.com/PauzeDevs/Auralis-TV"><img src="https://img.shields.io/badge/Repository-Explore-343A40?style=flat-square&logo=github&logoColor=white" alt="Explore repository" /></a>
+  <a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/badge/Builds-Check-343A40?style=flat-square&logo=githubactions&logoColor=white" alt="Check builds" /></a>
+  <a href="https://github.com/PauzeDevs/Auralis-TV/issues"><img src="https://img.shields.io/badge/Issues-Report-343A40?style=flat-square&logo=github&logoColor=white" alt="Report issue" /></a>
+  <a href="https://github.com/PauzeDevs/Auralis-TV/discussions"><img src="https://img.shields.io/badge/Community-Discuss-343A40?style=flat-square&logo=github&logoColor=white" alt="Discuss" /></a>
+</p>
 
 </div>
 
@@ -14,7 +24,7 @@ A minimal, remote-friendly home screen inspired by the feel of tvOS.
 
 ## About
 
-Auralis TV is an Android TV launcher built with **Kotlin** and **Jetpack Compose**.
+Auralis TV is a minimal, remote-friendly launcher for Android TV and Google TV, built with **Kotlin** and **Jetpack Compose**.
 
 Inspired by tvOS. Not affiliated with Apple.
 
@@ -26,7 +36,7 @@ Inspired by tvOS. Not affiliated with Apple.
 
 ## Download
 
-Open [GitHub Actions](https://github.com/PauzeDevs/Auralis-TV/actions) and download the **Auralis-TV-debug** artifact from a successful build.
+Get the **Auralis-TV-debug** artifact from a successful [GitHub Actions build](https://github.com/PauzeDevs/Auralis-TV/actions).
 
 ## Compatibility
 
@@ -34,7 +44,7 @@ Designed for Android TV and Google TV. Default-launcher support may vary by devi
 
 ## Build
 
-Built with Kotlin, Jetpack Compose, and Gradle.
+Kotlin · Jetpack Compose · Gradle
 
 ## License
 
