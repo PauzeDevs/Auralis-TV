@@ -330,10 +330,10 @@ private fun AuralisHome(
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val compact = maxHeight < 620.dp
-        val horizontalPadding = if (compact) 34.dp else 52.dp
-        val verticalPadding = if (compact) 16.dp else 26.dp
-        val heroHeight = if (compact) 142.dp else 190.dp
-        val tileWidth = if (compact) 116.dp else 138.dp
+        val horizontalPadding = if (compact) 28.dp else 64.dp
+        val verticalPadding = if (compact) 14.dp else 30.dp
+        val heroHeight = if (compact) 166.dp else 250.dp
+        val tileWidth = if (compact) 156.dp else 208.dp
         val featuredApp = recentApps.firstOrNull() ?: apps.firstOrNull()
         val featuredIsRecent = recentApps.isNotEmpty()
 
@@ -342,7 +342,7 @@ private fun AuralisHome(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color(0xFF171719), Color(0xFF09090A), Ink)
+                        listOf(Color(0xFF20242B), Color(0xFF101114), Ink)
                     )
                 )
                 .padding(
@@ -447,7 +447,7 @@ private fun AuralisHome(
                 Spacer(Modifier.weight(1f))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "Navigate with your remote  •  OK to open",
+                        "Auralis TV",
                         color = Color(0xFF788597),
                         fontSize = 11.sp
                     )
@@ -496,7 +496,7 @@ private fun TopShelf(
             .fillMaxWidth()
             .height(height)
             .scale(scale)
-            .clip(RoundedCornerShape(26.dp))
+            .clip(RoundedCornerShape(30.dp))
             .background(
                 Brush.horizontalGradient(
                     listOf(
@@ -585,7 +585,7 @@ private fun TopShelf(
 
             Box(
                 modifier = Modifier
-                    .size(if (compact) 78.dp else 124.dp)
+                    .size(if (compact) 88.dp else 154.dp)
                     .clip(RoundedCornerShape(if (compact) 18.dp else 25.dp))
                     .background(Color(0xFF252B35))
                     .border(
@@ -599,7 +599,7 @@ private fun TopShelf(
                     Image(
                         bitmap = app.icon.asImageBitmap(),
                         contentDescription = app.label,
-                        modifier = Modifier.size(if (compact) 58.dp else 94.dp)
+                        modifier = Modifier.size(if (compact) 66.dp else 116.dp)
                     )
                 } else {
                     Text(
@@ -658,7 +658,7 @@ private fun AppTile(
             .width(width)
             .scale(scale)
             .clip(RoundedCornerShape(18.dp))
-            .background(if (focused) Color(0xFF2B2B2F) else TileSurface)
+            .background(if (focused) Color(0xFF34363B) else Color(0xFF202124))
             .border(
                 width = if (focused) 2.dp else 1.dp,
                 color = if (focused) Accent else Color(0xFF303034),
@@ -667,12 +667,12 @@ private fun AppTile(
             .focusRequester(focusRequester)
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
-            .padding(if (compact) 8.dp else 12.dp),
+            .padding(if (compact) 12.dp else 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(if (compact) 50.dp else 70.dp)
+                .size(if (compact) 66.dp else 100.dp)
                 .clip(RoundedCornerShape(15.dp))
                 .background(Color(0xFF263344)),
             contentAlignment = Alignment.Center
@@ -680,14 +680,14 @@ private fun AppTile(
             Image(
                 bitmap = app.icon.asImageBitmap(),
                 contentDescription = app.label,
-                modifier = Modifier.size(if (compact) 42.dp else 58.dp)
+                modifier = Modifier.size(if (compact) 54.dp else 82.dp)
             )
         }
         Spacer(Modifier.height(if (compact) 6.dp else 9.dp))
         Text(
             text = app.label,
             color = Color.White,
-            fontSize = if (compact) 11.sp else 13.sp,
+            fontSize = if (compact) 13.sp else 16.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
