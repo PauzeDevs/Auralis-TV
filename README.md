@@ -5,9 +5,7 @@
 
 <div align="center">
 
-<a href="https://github.com/PauzeDevs/Auralis-TV">
-  <img src="https://capsule-render.vercel.app/api?type=waving&height=220&color=0:050505,45:07152D,75:007BFF,100:00D9FF&text=AURALIS%20TV&fontSize=56&fontColor=FFFFFF&fontAlignY=38&animation=fadeIn&desc=ANDROID%20TV%20%E2%80%A2%20GOOGLE%20TV&descAlignY=62&descSize=16" width="100%" />
-</a>
+<a href="https://github.com/PauzeDevs/Auralis-TV"><img src="https://capsule-render.vercel.app/api?type=waving&height=220&color=0:050505,45:07152D,75:007BFF,100:00D9FF&text=AURALIS%20TV&fontSize=56&fontColor=FFFFFF&fontAlignY=38&animation=fadeIn&desc=ANDROID%20TV%20%E2%80%A2%20GOOGLE%20TV&descAlignY=62&descSize=16" width="100%" /></a>
 
 <br/>
 
@@ -15,22 +13,15 @@
 
 <br/><br/>
 
-<a href="https://github.com/PauzeDevs/Auralis-TV">
-  <img src="https://img.shields.io/badge/EXPLORE%20AURALIS%20TV-007BFF?style=for-the-badge&logo=github&logoColor=white" alt="Explore Auralis TV" />
-</a>
+<a href="https://github.com/PauzeDevs/Auralis-TV"><img src="https://img.shields.io/badge/EXPLORE%20AURALIS%20TV-007BFF?style=for-the-badge&logo=github&logoColor=white" alt="Explore Auralis TV" /></a>
 
 <br/><br/>
 
-<a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/github/actions/workflow/status/PauzeDevs/Auralis-TV/android.yml?branch=main&style=for-the-badge&label=BUILD&color=007BFF&labelColor=050505" alt="Build status" /></a>
-<img src="https://img.shields.io/badge/PLATFORM-ANDROID%20TV%20%2F%20GOOGLE%20TV-007BFF?style=for-the-badge&labelColor=050505" alt="Platform" />
-<a href="https://github.com/PauzeDevs/Auralis-TV/releases"><img src="https://img.shields.io/badge/RELEASES-VIEW-00C8FF?style=for-the-badge&labelColor=050505" alt="Releases" /></a>
-<a href="https://github.com/PauzeDevs/Auralis-TV/blob/main/LICENSE"><img src="https://img.shields.io/github/license/PauzeDevs/Auralis-TV?style=for-the-badge&color=00C8FF&labelColor=050505" alt="License" /></a>
+<a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/github/actions/workflow/status/PauzeDevs/Auralis-TV/android.yml?branch=main&style=for-the-badge&label=BUILD&color=007BFF&labelColor=050505" alt="Build status" /></a><a href="https://github.com/PauzeDevs/Auralis-TV/releases"><img src="https://img.shields.io/badge/RELEASES-VIEW-00C8FF?style=for-the-badge&labelColor=050505" alt="Releases" /></a><a href="https://github.com/PauzeDevs/Auralis-TV/blob/main/LICENSE"><img src="https://img.shields.io/github/license/PauzeDevs/Auralis-TV?style=for-the-badge&color=00C8FF&labelColor=050505" alt="License" /></a>
 
 <br/><br/>
 
-<a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/badge/CHECK%20BUILDS-007BFF?style=for-the-badge&logo=githubactions&logoColor=white" alt="Check builds" /></a>
-<a href="https://github.com/PauzeDevs/Auralis-TV/issues"><img src="https://img.shields.io/badge/REPORT%20ISSUE-07152D?style=for-the-badge&logo=github&logoColor=00C8FF" alt="Report issue" /></a>
-<a href="https://github.com/PauzeDevs/Auralis-TV/discussions"><img src="https://img.shields.io/badge/DISCUSS-07152D?style=for-the-badge&logo=github&logoColor=00C8FF" alt="Discussions" /></a>
+<a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/badge/CHECK%20BUILDS-007BFF?style=for-the-badge&logo=githubactions&logoColor=white" alt="Check builds" /></a><a href="https://github.com/PauzeDevs/Auralis-TV/issues"><img src="https://img.shields.io/badge/REPORT%20ISSUE-07152D?style=for-the-badge&logo=github&logoColor=00C8FF" alt="Report issue" /></a><a href="https://github.com/PauzeDevs/Auralis-TV/discussions"><img src="https://img.shields.io/badge/DISCUSS-07152D?style=for-the-badge&logo=github&logoColor=00C8FF" alt="Discussions" /></a>
 
 </div>
 
