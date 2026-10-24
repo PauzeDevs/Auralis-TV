@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -404,7 +405,8 @@ private fun TopShelf(
                     fontSize = if (compact) 25.sp else 35.sp,
                     lineHeight = if (compact) 29.sp else 39.sp,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 if (!compact) {
                     Spacer(Modifier.height(6.dp))
@@ -539,7 +541,8 @@ private fun AppTile(
             color = Color.White,
             fontSize = if (compact) 11.sp else 13.sp,
             fontWeight = FontWeight.Medium,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
