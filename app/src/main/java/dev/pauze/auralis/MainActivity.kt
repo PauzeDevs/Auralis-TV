@@ -10,7 +10,7 @@ import android.os.Bundle
 import android.view.Display
 import android.view.WindowManager
 import android.widget.Toast
-import androidx.activity.BackHandler
+import androidx.activity.compose.BackHandler
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
