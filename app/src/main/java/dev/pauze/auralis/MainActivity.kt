@@ -1,5 +1,6 @@
 package dev.pauze.auralis
 
+import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -8,6 +9,7 @@ import android.graphics.Canvas
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Bundle
+import android.provider.Settings
 import android.view.Display
 import android.view.WindowManager
 import android.widget.Toast
@@ -98,6 +100,16 @@ private data class TvApp(
     val icon: Bitmap
 )
 
+private data class InstalledStreamingApp(
+    val provider: StreamingProvider,
+    val app: TvApp
+)
+
+private enum class LauncherDrawer {
+    APPS,
+    RECOMMENDATIONS
+}
+
 private data class FeaturedMovie(
     val id: String,
     val title: String,
@@ -187,7 +199,9 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     onOpenSettings = { openSystemSettings() },
+                    onSetAsHome = { requestDefaultLauncher() },
                     onOpenMovie = { movie -> openMovie(movie) },
+                    onSearchOnProvider = { movie, provider -> openMovieOnProvider(movie, provider) },
                     onRefreshApps = {
                         refreshApps()
                         refreshFeaturedMovies()
@@ -397,6 +411,64 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun requestDefaultLauncher() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = getSystemService(RoleManager::class.java)
+            if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
+                if (roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    Toast.makeText(this, "Auralis TV is already the default Home app.", Toast.LENGTH_SHORT).show()
+                    return
+                }
+                try {
+                    startActivityForResult(
+                        roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME),
+                        REQUEST_HOME_ROLE
+                    )
+                    return
+                } catch (_: ActivityNotFoundException) {
+                    // Customized TV firmware may expose the role without its prompt.
+                } catch (_: SecurityException) {
+                    // Fall back to the device's Home-app settings below.
+                }
+            }
+        }
+
+        try {
+            startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(
+                this,
+                "Open Settings and look for Default apps or Home app to select Auralis TV.",
+                Toast.LENGTH_LONG
+            ).show()
+        } catch (_: SecurityException) {
+            Toast.makeText(
+                this,
+                "This device does not allow changing the default launcher from Auralis TV.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun openMovieOnProvider(movie: FeaturedMovie, provider: StreamingProvider) {
+        val searchIntent = Intent(Intent.ACTION_VIEW, Uri.parse(provider.searchUrlFor(movie.title)))
+        try {
+            startActivity(searchIntent)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(
+                this,
+                "No app or browser is available to search ${provider.displayName}.",
+                Toast.LENGTH_SHORT
+            ).show()
+        } catch (_: SecurityException) {
+            Toast.makeText(
+                this,
+                "Couldn't open ${provider.displayName} for this title.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     private fun openSystemSettings() {
         try {
             startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
@@ -501,6 +573,7 @@ class MainActivity : ComponentActivity() {
             "https://cinemeta-catalogs.strem.io/top/catalog/movie/top.json"
         private const val MOVIE_CATALOG_TIMEOUT_MS = 8_000
         private const val MAX_FEATURED_MOVIES = 20
+        private const val REQUEST_HOME_ROLE = 601
     }
 }
 
@@ -513,10 +586,20 @@ private fun AuralisHome(
     moviesLoading: Boolean,
     onLaunch: (TvApp) -> Unit,
     onOpenSettings: () -> Unit,
+    onSetAsHome: () -> Unit,
     onOpenMovie: (FeaturedMovie) -> Unit,
+    onSearchOnProvider: (FeaturedMovie, StreamingProvider) -> Unit,
     onRefreshApps: () -> Unit
 ) {
-    var drawerOpen by remember { mutableStateOf(false) }
+    var activeDrawer by remember { mutableStateOf<LauncherDrawer?>(null) }
+    val drawerOpen = activeDrawer != null
+    val streamingApps = remember(apps) {
+        apps.mapNotNull { app ->
+            streamingProviderForPackage(app.packageName)?.let { provider ->
+                InstalledStreamingApp(provider, app)
+            }
+        }.distinctBy { it.provider.id }
+    }
     var selectedMovieId by remember(movies.firstOrNull()?.id) {
         mutableStateOf(movies.firstOrNull()?.id)
     }
@@ -526,7 +609,7 @@ private fun AuralisHome(
         }
     }
     val selectedMovie = movies.firstOrNull { it.id == selectedMovieId } ?: movies.firstOrNull()
-    BackHandler(enabled = drawerOpen) { drawerOpen = false }
+    BackHandler(enabled = drawerOpen) { activeDrawer = null }
 
     var currentTime by remember { mutableStateOf(LocalDateTime.now()) }
     LaunchedEffect(Unit) {
@@ -646,25 +729,6 @@ private fun AuralisHome(
                     onOpenMovie = onOpenMovie
                 )
 
-                if (movies.isNotEmpty()) {
-                    Spacer(Modifier.height(if (compact) 10.dp else 16.dp))
-                    SectionHeading(
-                        title = "Movie discovery",
-                        detail = if (moviesLoading) "Refreshing catalogue…" else "Focus to preview  •  OK for trailer/details"
-                    )
-                    Spacer(Modifier.height(if (compact) 6.dp else 9.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp)) {
-                        itemsIndexed(movies, key = { _, movie -> movie.id }) { _, movie ->
-                            MovieTile(
-                                movie = movie,
-                                compact = compact,
-                                onFocused = { selectedMovieId = it.id },
-                                onClick = { onOpenMovie(movie) }
-                            )
-                        }
-                    }
-                }
-
                 if (recentApps.isNotEmpty()) {
                     Spacer(Modifier.height(if (compact) 12.dp else 20.dp))
                     SectionHeading(
@@ -725,19 +789,31 @@ private fun AuralisHome(
                     )
                     Spacer(Modifier.weight(1f))
                     FocusButton(
-                        label = "All apps",
+                        label = "Apps",
                         initialFocus = false,
-                        onClick = { drawerOpen = true }
+                        onClick = { activeDrawer = LauncherDrawer.APPS }
                     )
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.width(if (compact) 5.dp else 10.dp))
+                    FocusButton(
+                        label = "For You",
+                        initialFocus = false,
+                        onClick = { activeDrawer = LauncherDrawer.RECOMMENDATIONS }
+                    )
+                    Spacer(Modifier.width(if (compact) 5.dp else 10.dp))
+                    FocusButton(
+                        label = "Set Home",
+                        initialFocus = false,
+                        onClick = onSetAsHome
+                    )
+                    Spacer(Modifier.width(if (compact) 5.dp else 10.dp))
                     FocusButton(
                         label = "Refresh",
                         initialFocus = false,
                         onClick = onRefreshApps
                     )
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.width(if (compact) 5.dp else 10.dp))
                     FocusButton(
-                        label = "System settings",
+                        label = "Settings",
                         initialFocus = !appsLoading && apps.isEmpty(),
                         onClick = onOpenSettings
                     )
@@ -745,20 +821,39 @@ private fun AuralisHome(
             }
         }
         AnimatedVisibility(
-            visible = drawerOpen,
+            visible = activeDrawer != null,
             enter = fadeIn(tween(180)) + scaleIn(initialScale = 0.975f, animationSpec = tween(220)),
             exit = fadeOut(tween(140)) + scaleOut(targetScale = 0.985f, animationSpec = tween(140))
         ) {
-            AppDrawer(
-                apps = apps,
-                appsLoading = appsLoading,
-                compact = compact,
-                onClose = { drawerOpen = false },
-                onLaunch = { app ->
-                    onLaunch(app)
-                    drawerOpen = false
-                }
-            )
+            when (activeDrawer) {
+                LauncherDrawer.APPS -> AppDrawer(
+                    apps = apps,
+                    appsLoading = appsLoading,
+                    compact = compact,
+                    onClose = { activeDrawer = null },
+                    onLaunch = { app ->
+                        onLaunch(app)
+                        activeDrawer = null
+                    }
+                )
+                LauncherDrawer.RECOMMENDATIONS -> RecommendationsDrawer(
+                    appsLoading = appsLoading,
+                    streamingApps = streamingApps,
+                    movies = movies,
+                    moviesLoading = moviesLoading,
+                    compact = compact,
+                    selectedMovieId = selectedMovieId,
+                    onSelectMovie = { selectedMovieId = it.id },
+                    onClose = { activeDrawer = null },
+                    onLaunch = { app ->
+                        onLaunch(app)
+                        activeDrawer = null
+                    },
+                    onOpenMovie = onOpenMovie,
+                    onSearchOnProvider = onSearchOnProvider
+                )
+                null -> Unit
+            }
         }
         }
     }
@@ -890,6 +985,266 @@ private fun AppDrawer(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RecommendationsDrawer(
+    appsLoading: Boolean,
+    streamingApps: List<InstalledStreamingApp>,
+    movies: List<FeaturedMovie>,
+    moviesLoading: Boolean,
+    compact: Boolean,
+    selectedMovieId: String?,
+    onSelectMovie: (FeaturedMovie) -> Unit,
+    onClose: () -> Unit,
+    onLaunch: (TvApp) -> Unit,
+    onOpenMovie: (FeaturedMovie) -> Unit,
+    onSearchOnProvider: (FeaturedMovie, StreamingProvider) -> Unit
+) {
+    var selectedProviderId by remember(streamingApps.firstOrNull()?.provider?.id) {
+        mutableStateOf(streamingApps.firstOrNull()?.provider?.id)
+    }
+    LaunchedEffect(streamingApps) {
+        if (streamingApps.none { it.provider.id == selectedProviderId }) {
+            selectedProviderId = streamingApps.firstOrNull()?.provider?.id
+        }
+    }
+
+    val selectedProvider = streamingApps.firstOrNull { it.provider.id == selectedProviderId }
+        ?: streamingApps.firstOrNull()
+    val selectedMovie = movies.firstOrNull { it.id == selectedMovieId } ?: movies.firstOrNull()
+    val panelShape = RoundedCornerShape(if (compact) 22.dp else 30.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0x8203060B))
+            .padding(if (compact) 8.dp else 12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(panelShape)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xE63A414B), Color(0xE51A1D24), Color(0xF20C0D11))
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.linearGradient(
+                        listOf(Color(0xBFFFFFFF), Color(0x42FFFFFF), Color(0x1A8BCBFF), Color(0x66FFFFFF))
+                    ),
+                    shape = panelShape
+                )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(if (compact) 96.dp else 150.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0x30FFFFFF), Color(0x0DFFFFFF), Color.Transparent)
+                        )
+                    )
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        horizontal = if (compact) 18.dp else 32.dp,
+                        vertical = if (compact) 14.dp else 24.dp
+                    )
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "For You",
+                            color = Color.White,
+                            fontSize = if (compact) 27.sp else 36.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = (-0.6).sp
+                        )
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            when {
+                                appsLoading -> "Detecting installed streaming apps…"
+                                streamingApps.isEmpty() -> "No supported streaming services detected"
+                                else -> "${streamingApps.size} installed streaming service${if (streamingApps.size == 1) "" else "s"}"
+                            },
+                            color = Color(0xFFCAD1DD),
+                            fontSize = if (compact) 11.sp else 13.sp
+                        )
+                    }
+                    FocusButton(label = "Close", initialFocus = false, onClick = onClose)
+                }
+
+                Spacer(Modifier.height(if (compact) 14.dp else 20.dp))
+                SectionHeading(title = "Your streaming apps", detail = "Choose where to search")
+                Spacer(Modifier.height(if (compact) 7.dp else 10.dp))
+
+                if (streamingApps.isEmpty()) {
+                    Text(
+                        if (appsLoading) {
+                            "Auralis is checking the apps installed on this TV."
+                        } else {
+                            "Install a supported service such as Netflix, Prime Video, Crunchyroll or YouTube, then select Refresh. Other launchable apps remain available in the Apps drawer."
+                        },
+                        color = Color(0xFFB7C0CE),
+                        fontSize = if (compact) 12.sp else 14.sp,
+                        lineHeight = if (compact) 17.sp else 20.sp
+                    )
+                } else {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(if (compact) 9.dp else 12.dp)) {
+                        items(streamingApps, key = { it.provider.id }) { installed ->
+                            StreamingServiceTile(
+                                installed = installed,
+                                selected = installed.provider.id == selectedProvider?.provider?.id,
+                                compact = compact,
+                                onSelect = { selectedProviderId = installed.provider.id }
+                            )
+                        }
+                    }
+                }
+
+                if (selectedProvider != null) {
+                    Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp)
+                    ) {
+                        Text(
+                            "Search target: ${selectedProvider.provider.displayName}",
+                            color = Color(0xFFE7EDF7),
+                            fontSize = if (compact) 12.sp else 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        FocusButton(
+                            label = "Open service",
+                            initialFocus = false,
+                            onClick = { onLaunch(selectedProvider.app) }
+                        )
+                        if (selectedMovie != null) {
+                            FocusButton(
+                                label = "Search title",
+                                initialFocus = false,
+                                onClick = { onSearchOnProvider(selectedMovie, selectedProvider.provider) }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(if (compact) 15.dp else 22.dp))
+                SectionHeading(
+                    title = "Recommended to explore",
+                    detail = if (moviesLoading) "Refreshing catalogue…" else "${movies.size} picks"
+                )
+                Spacer(Modifier.height(if (compact) 5.dp else 8.dp))
+                Text(
+                    "These are general film-discovery picks, not a claim that a title is included with a service. Focus a title to update the home backdrop, open its details, or search it on the selected installed service.",
+                    color = Color(0xFFB7C0CE),
+                    fontSize = if (compact) 11.sp else 12.sp,
+                    lineHeight = if (compact) 15.sp else 17.sp
+                )
+                Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
+
+                if (movies.isEmpty()) {
+                    Text(
+                        if (moviesLoading) "Loading recommendations…" else "The catalogue is unavailable. Check the network and use Refresh on the home screen.",
+                        color = Color(0xFFCAD1DD),
+                        fontSize = 15.sp
+                    )
+                } else {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp)) {
+                        itemsIndexed(movies, key = { _, movie -> movie.id }) { _, movie ->
+                            MovieTile(
+                                movie = movie,
+                                compact = compact,
+                                onFocused = onSelectMovie,
+                                onClick = { onOpenMovie(movie) }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Search may open the service app through Android App Links or a browser, depending on the TV and service. Availability varies by country, subscription and catalogue.",
+                    color = Color(0xFF8C98A9),
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StreamingServiceTile(
+    installed: InstalledStreamingApp,
+    selected: Boolean,
+    compact: Boolean,
+    onSelect: () -> Unit
+) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused || selected) 1.035f else 1f,
+        animationSpec = tween(durationMillis = 160),
+        label = "streamingServiceScale"
+    )
+    val shape = RoundedCornerShape(if (compact) 14.dp else 18.dp)
+
+    Column(
+        modifier = Modifier
+            .width(if (compact) 158.dp else 206.dp)
+            .scale(scale)
+            .clip(shape)
+            .background(
+                Brush.verticalGradient(
+                    if (selected || focused) {
+                        listOf(Color(0xBFE7F3FF), Color(0xA54A617A), Color(0xA527303D))
+                    } else {
+                        listOf(Color(0x4DFFFFFF), Color(0x22FFFFFF), Color(0x14FFFFFF))
+                    }
+                )
+            )
+            .border(
+                width = if (selected || focused) 2.dp else 1.dp,
+                color = if (selected || focused) Accent else Color(0x44FFFFFF),
+                shape = shape
+            )
+            .onFocusChanged {
+                focused = it.isFocused
+                if (it.isFocused) onSelect()
+            }
+            .clickable(onClick = onSelect)
+            .padding(if (compact) 10.dp else 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Image(
+            bitmap = installed.app.icon.asImageBitmap(),
+            contentDescription = installed.provider.displayName,
+            modifier = Modifier.size(if (compact) 40.dp else 52.dp)
+        )
+        Spacer(Modifier.height(if (compact) 5.dp else 8.dp))
+        Text(
+            installed.provider.displayName,
+            color = Color.White,
+            fontSize = if (compact) 12.sp else 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(Modifier.height(3.dp))
+        Text(
+            if (selected) "Search target" else "Select service",
+            color = Color(0xFFCAD1DD),
+            fontSize = 10.sp
+        )
     }
 }
 

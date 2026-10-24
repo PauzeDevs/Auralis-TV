@@ -42,29 +42,36 @@ Inspired by the cinematic feel of tvOS. Not affiliated with Apple.
 
 - Minimal, cinematic home screen
 - Remote-friendly navigation
+- Dedicated Apps and For You drawers
+- Detects common installed streaming apps and can search titles through their link destinations
+- Default Home-app selection shortcut where the device exposes it
 - Quick access to installed apps
 
 ## 03 / DOWNLOAD
 
 Get the **Auralis-TV-debug** artifact from a successful [GitHub Actions build](https://github.com/PauzeDevs/Auralis-TV/actions).
 
-## 04 / COMPATIBILITY
+## 04 / DEFAULT LAUNCHER
 
-Designed for Android TV and Google TV. Default-launcher support may vary by device and firmware.
+The activity declares Android's Home intent, and the home screen includes a **Set Home** action. On devices that expose the Home role, Auralis requests it; otherwise it opens Home-app settings where available. Some TV vendors restrict third-party default launchers, so the choice must be offered by the device.
 
-## 05 / BUILT WITH
+## 05 / COMPATIBILITY
+
+Designed for Android TV and Google TV. App discovery uses launchable activities, including TV and standard launcher entries. Known streaming services are detected from their installed package names. The For You drawer shows general film-discovery picks and lets users search titles via a service link or a browser; it does not guarantee catalog availability or stream content.
+
+## 06 / BUILT WITH
 
 <div align="center">
 <img src="https://skillicons.dev/icons?i=kotlin,androidstudio,gradle" alt="Kotlin, Android Studio, Gradle" />
 </div>
 
-## 06 / FEATURED FILMS
+## 07 / FEATURED FILMS
 
 Auralis TV can show a small movie-discovery shelf using the public Cinemeta catalogue. The latest successful catalogue response is cached for offline fallback; artwork still depends on network access or the image cache and may not be available offline. Selecting a film opens its available YouTube trailer or its IMDb details page. Auralis TV does **not** stream or provide access to films.
 
 Catalogue: [Cinemeta](https://cinemeta.strem.io/stremio/v1). Artwork URLs are supplied by its metadata response. Availability and catalogue fields are controlled by the external service.
 
-## 07 / LICENSE
+## 08 / LICENSE
 
 [AGPL-3.0](LICENSE)
 
