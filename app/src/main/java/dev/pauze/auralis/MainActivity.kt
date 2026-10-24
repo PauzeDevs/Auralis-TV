@@ -5,6 +5,8 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.os.Bundle
+import android.view.Display
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -104,6 +106,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         preferences = getSharedPreferences("auralis_preferences", MODE_PRIVATE)
+        configureHighRefreshRate()
 
         setContent {
             MaterialTheme {
@@ -134,6 +137,22 @@ class MainActivity : ComponentActivity() {
         }
 
         refreshApps()
+    }
+
+    private fun configureHighRefreshRate() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) return
+
+        val displayMode = windowManager.defaultDisplay.mode
+        val supportedModes = windowManager.defaultDisplay.supportedModes
+        val preferredMode = supportedModes
+            .filter { it.physicalHeight == displayMode.physicalHeight && it.physicalWidth == displayMode.physicalWidth }
+            .maxByOrNull { it.refreshRate }
+
+        if (preferredMode != null && preferredMode.refreshRate >= 90f) {
+            val attributes = window.attributes
+            attributes.preferredDisplayModeId = preferredMode.modeId
+            window.attributes = attributes
+        }
     }
 
     override fun onResume() {
