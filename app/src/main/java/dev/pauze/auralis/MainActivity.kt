@@ -67,6 +67,7 @@ import java.util.Locale
 private data class TvApp(
     val label: String,
     val packageName: String,
+    val launchActivityName: String,
     val icon: Bitmap
 )
 
@@ -191,7 +192,10 @@ class MainActivity : ComponentActivity() {
 
     private fun launchApp(app: TvApp): Boolean {
         return try {
-            val launchIntent = packageManager.getLaunchIntentForPackage(app.packageName)
+            val launchIntent = Intent(Intent.ACTION_MAIN).setClassName(
+                app.packageName,
+                app.launchActivityName
+            )
             if (launchIntent == null) {
                 Toast.makeText(
                     this,
@@ -231,29 +235,44 @@ class MainActivity : ComponentActivity() {
             .take(12)
 
     private fun loadApps(): List<TvApp> {
-        return packageManager.getInstalledApplications(0)
-            .mapNotNull { info ->
-                if (info.packageName == packageName ||
-                    packageManager.getLaunchIntentForPackage(info.packageName) == null
-                ) {
-                    null
-                } else {
-                    runCatching {
-                        val drawable = packageManager.getApplicationIcon(info)
-                        val bitmap = Bitmap.createBitmap(
-                            ICON_BITMAP_SIZE,
-                            ICON_BITMAP_SIZE,
-                            Bitmap.Config.ARGB_8888
-                        )
-                        drawable.setBounds(8, 8, ICON_BITMAP_SIZE - 8, ICON_BITMAP_SIZE - 8)
-                        drawable.draw(Canvas(bitmap))
-                        TvApp(
-                            label = packageManager.getApplicationLabel(info).toString(),
-                            packageName = info.packageName,
-                            icon = bitmap
-                        )
-                    }.getOrNull()
-                }
+        val launcherCategories = listOf(
+            Intent.CATEGORY_LEANBACK_LAUNCHER,
+            Intent.CATEGORY_LAUNCHER
+        )
+
+        return launcherCategories
+            .flatMap { category ->
+                val query = Intent(Intent.ACTION_MAIN).addCategory(category)
+                packageManager.queryIntentActivities(query, 0)
+                    .mapNotNull { resolvedActivity ->
+                        val activityInfo = resolvedActivity.activityInfo
+                            ?: return@mapNotNull null
+                        if (activityInfo.packageName == packageName) {
+                            null
+                        } else {
+                            runCatching {
+                                val drawable = resolvedActivity.loadIcon(packageManager)
+                                val bitmap = Bitmap.createBitmap(
+                                    ICON_BITMAP_SIZE,
+                                    ICON_BITMAP_SIZE,
+                                    Bitmap.Config.ARGB_8888
+                                )
+                                drawable.setBounds(
+                                    8,
+                                    8,
+                                    ICON_BITMAP_SIZE - 8,
+                                    ICON_BITMAP_SIZE - 8
+                                )
+                                drawable.draw(Canvas(bitmap))
+                                TvApp(
+                                    label = resolvedActivity.loadLabel(packageManager).toString(),
+                                    packageName = activityInfo.packageName,
+                                    launchActivityName = activityInfo.name,
+                                    icon = bitmap
+                                )
+                            }.getOrNull()
+                        }
+                    }
             }
             .distinctBy { it.packageName }
             .sortedBy { it.label.lowercase(Locale.getDefault()) }
