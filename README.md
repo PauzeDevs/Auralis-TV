@@ -60,7 +60,7 @@ Designed for Android TV and Google TV. Default-launcher support may vary by devi
 
 ## 06 / FEATURED FILMS
 
-Auralis TV can show a small movie-discovery shelf using the public Cinemeta catalogue. Film metadata and artwork require an internet connection; the latest successful catalogue response is cached for offline fallback. Selecting a film opens its available YouTube trailer or its IMDb details page. Auralis TV does **not** stream or provide access to films.
+Auralis TV can show a small movie-discovery shelf using the public Cinemeta catalogue. The latest successful catalogue response is cached for offline fallback; artwork still depends on network access or the image cache and may not be available offline. Selecting a film opens its available YouTube trailer or its IMDb details page. Auralis TV does **not** stream or provide access to films.
 
 Catalogue: [Cinemeta](https://cinemeta.strem.io/stremio/v1). Artwork URLs are supplied by its metadata response. Availability and catalogue fields are controlled by the external service.
 

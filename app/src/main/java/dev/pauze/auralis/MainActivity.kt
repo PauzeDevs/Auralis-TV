@@ -68,12 +68,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -971,6 +973,17 @@ private fun DrawerAppCard(
 }
 
 @Composable
+private fun rememberCinematicArtworkRequest(url: String): ImageRequest {
+    val context = LocalContext.current.applicationContext
+    return remember(url) {
+        ImageRequest.Builder(context)
+            .data(url)
+            .crossfade(350)
+            .build()
+    }
+}
+
+@Composable
 private fun TopShelf(
     app: TvApp?,
     movie: FeaturedMovie?,
@@ -1035,7 +1048,7 @@ private fun TopShelf(
             ) { movieId ->
                 val artwork = movies.firstOrNull { it.id == movieId } ?: movie
                 AsyncImage(
-                    model = artwork.backgroundUrl.ifBlank { artwork.posterUrl },
+                    model = rememberCinematicArtworkRequest(artwork.backgroundUrl.ifBlank { artwork.posterUrl }),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -1183,7 +1196,7 @@ private fun TopShelf(
 
             if (movie?.posterUrl?.isNotBlank() == true) {
                 AsyncImage(
-                    model = movie.posterUrl,
+                    model = rememberCinematicArtworkRequest(movie.posterUrl),
                     contentDescription = movie.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -1268,7 +1281,7 @@ private fun MovieTile(
                 )
         ) {
             AsyncImage(
-                model = movie.backgroundUrl.ifBlank { movie.posterUrl },
+                model = rememberCinematicArtworkRequest(movie.backgroundUrl.ifBlank { movie.posterUrl }),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
