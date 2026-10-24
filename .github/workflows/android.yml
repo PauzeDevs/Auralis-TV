@@ -2,9 +2,9 @@ name: Android APK
 
 on:
   push:
-    branches: [main]
+    branches: [Auralis, main]
   pull_request:
-    branches: [main]
+    branches: [Auralis, main]
   workflow_dispatch:
 
 permissions:
