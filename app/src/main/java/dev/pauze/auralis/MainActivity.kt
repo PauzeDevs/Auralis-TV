@@ -134,7 +134,7 @@ private fun AuralisHome(
                 }
                 Box(
                     modifier = Modifier.align(Alignment.CenterEnd).size(142.dp)
-                        .clip(CircleShape).background(Color(0x20B7F36B),
+                        .clip(CircleShape).background(Color(0x20B7F36B)),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(Modifier.size(102.dp).clip(CircleShape).background(Color(0x2EB7F36B)), contentAlignment = Alignment.Center) {
