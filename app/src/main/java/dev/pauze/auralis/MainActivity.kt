@@ -4,13 +4,22 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.RenderEffect
+import android.graphics.Shader
 import android.os.Bundle
 import android.view.Display
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.activity.BackHandler
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,6 +39,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,6 +54,8 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -55,6 +68,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.os.Build
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -313,6 +327,9 @@ private fun AuralisHome(
     onOpenSettings: () -> Unit,
     onRefreshApps: () -> Unit
 ) {
+    var drawerOpen by remember { mutableStateOf(false) }
+    BackHandler(enabled = drawerOpen) { drawerOpen = false }
+
     var currentTime by remember { mutableStateOf(LocalDateTime.now()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -337,9 +354,17 @@ private fun AuralisHome(
         val featuredApp = recentApps.firstOrNull() ?: apps.firstOrNull()
         val featuredIsRecent = recentApps.isNotEmpty()
 
+        Box(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .graphicsLayer {
+                    renderEffect = if (drawerOpen && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        RenderEffect.createBlurEffect(18f, 18f, Shader.TileMode.CLAMP).asComposeRenderEffect()
+                    } else {
+                        null
+                    }
+                }
                 .background(
                     Brush.verticalGradient(
                         listOf(Color(0xFF20242B), Color(0xFF101114), Ink)
@@ -453,11 +478,17 @@ private fun AuralisHome(
                     )
                     Spacer(Modifier.weight(1f))
                     FocusButton(
-                        label = "Refresh apps",
+                        label = "All apps",
+                        initialFocus = false,
+                        onClick = { drawerOpen = true }
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    FocusButton(
+                        label = "Refresh",
                         initialFocus = false,
                         onClick = onRefreshApps
                     )
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(10.dp))
                     FocusButton(
                         label = "System settings",
                         initialFocus = !appsLoading && apps.isEmpty(),
@@ -466,6 +497,231 @@ private fun AuralisHome(
                 }
             }
         }
+        AnimatedVisibility(
+            visible = drawerOpen,
+            enter = fadeIn(tween(180)) + scaleIn(initialScale = 0.975f, animationSpec = tween(220)),
+            exit = fadeOut(tween(140)) + scaleOut(targetScale = 0.985f, animationSpec = tween(140))
+        ) {
+            AppDrawer(
+                apps = apps,
+                appsLoading = appsLoading,
+                compact = compact,
+                onClose = { drawerOpen = false },
+                onLaunch = { app ->
+                    onLaunch(app)
+                    drawerOpen = false
+                }
+            )
+        }
+        }
+    }
+}
+
+
+@Composable
+private fun AppDrawer(
+    apps: List<TvApp>,
+    appsLoading: Boolean,
+    compact: Boolean,
+    onClose: () -> Unit,
+    onLaunch: (TvApp) -> Unit
+) {
+    val panelShape = RoundedCornerShape(if (compact) 22.dp else 30.dp)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0x8203060B))
+            .padding(if (compact) 8.dp else 12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(panelShape)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xE63A414B),
+                            Color(0xE51A1D24),
+                            Color(0xF20C0D11)
+                        )
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.linearGradient(
+                        listOf(
+                            Color(0xBFFFFFFF),
+                            Color(0x42FFFFFF),
+                            Color(0x1A8BCBFF),
+                            Color(0x66FFFFFF)
+                        )
+                    ),
+                    shape = panelShape
+                )
+        ) {
+            // A restrained specular sheen gives the translucent surface a glass-like edge.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(if (compact) 100.dp else 170.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0x30FFFFFF), Color(0x0DFFFFFF), Color.Transparent)
+                        )
+                    )
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        horizontal = if (compact) 18.dp else 32.dp,
+                        vertical = if (compact) 14.dp else 24.dp
+                    )
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column {
+                        Text(
+                            "All Apps",
+                            color = Color.White,
+                            fontSize = if (compact) 27.sp else 36.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = (-0.6).sp
+                        )
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            when {
+                                appsLoading -> "Discovering apps on this device…"
+                                apps.isEmpty() -> "No launchable apps found"
+                                else -> "${apps.size} apps ready to launch"
+                            },
+                            color = Color(0xFFCAD1DD),
+                            fontSize = if (compact) 11.sp else 13.sp
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    FocusButton(
+                        label = "Close",
+                        initialFocus = apps.isEmpty(),
+                        onClick = onClose
+                    )
+                }
+
+                Spacer(Modifier.height(if (compact) 14.dp else 22.dp))
+
+                if (apps.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            if (appsLoading) "Loading your apps…" else "Try Refresh from the home screen.",
+                            color = Color(0xFFCAD1DD),
+                            fontSize = 16.sp
+                        )
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = if (compact) 142.dp else 176.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 18.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 18.dp)
+                    ) {
+                        items(apps.size) { index ->
+                            val app = apps[index]
+                            DrawerAppCard(
+                                app = app,
+                                compact = compact,
+                                initialFocus = index == 0,
+                                onClick = { onLaunch(app) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DrawerAppCard(
+    app: TvApp,
+    compact: Boolean,
+    initialFocus: Boolean,
+    onClick: () -> Unit
+) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.055f else 1f,
+        animationSpec = tween(durationMillis = if (focused) 170 else 140),
+        label = "drawerCardScale"
+    )
+    val shape = RoundedCornerShape(22.dp)
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(initialFocus) {
+        if (initialFocus) {
+            requestInitialFocus { focusRequester.requestFocus() }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(if (compact) 124.dp else 154.dp)
+            .scale(scale)
+            .clip(shape)
+            .background(
+                Brush.verticalGradient(
+                    if (focused) {
+                        listOf(Color(0xBFE7F3FF), Color(0xA54A617A), Color(0xA527303D))
+                    } else {
+                        listOf(Color(0x4DFFFFFF), Color(0x22FFFFFF), Color(0x14FFFFFF))
+                    }
+                )
+            )
+            .border(
+                width = if (focused) 2.dp else 1.dp,
+                brush = if (focused) {
+                    Brush.linearGradient(listOf(Color.White, Color(0xFF91CEFF), Color(0xFFE7F5FF)))
+                } else {
+                    Brush.linearGradient(listOf(Color(0x72FFFFFF), Color(0x22FFFFFF), Color(0x45FFFFFF)))
+                },
+                shape = shape
+            )
+            .focusRequester(focusRequester)
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onClick)
+            .padding(if (compact) 10.dp else 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(if (compact) 52.dp else 72.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color(0x33080B10))
+                .border(1.dp, Color(0x38FFFFFF), RoundedCornerShape(18.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                bitmap = app.icon.asImageBitmap(),
+                contentDescription = app.label,
+                modifier = Modifier.size(if (compact) 42.dp else 58.dp)
+            )
+        }
+        Spacer(Modifier.height(if (compact) 7.dp else 10.dp))
+        Text(
+            app.label,
+            color = Color.White,
+            fontSize = if (compact) 12.sp else 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
