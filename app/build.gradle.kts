@@ -11,7 +11,7 @@ android {
     defaultConfig {
         applicationId = "dev.pauze.auralis"
         minSdk = 26
-        targetSdk = 28
+        targetSdk = 34
         versionCode = 2
         versionName = "0.2.0"
     }
