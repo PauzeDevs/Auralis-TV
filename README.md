@@ -14,7 +14,7 @@
 
 <table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0">
 <tr>
-<td><a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/github/actions/workflow/status/PauzeDevs/Auralis-TV/android.yml?branch=main&style=for-the-badge&label=BUILD&color=007BFF&labelColor=050505" alt="Build" /></a></td><td><a href="https://github.com/PauzeDevs/Auralis-TV/releases"><img src="https://img.shields.io/badge/RELEASES-VIEW-00C8FF?style=for-the-badge&labelColor=050505" alt="Releases" /></a></td><td><a href="https://github.com/PauzeDevs/Auralis-TV/blob/main/LICENSE"><img src="https://img.shields.io/github/license/PauzeDevs/Auralis-TV?style=for-the-badge&color=00C8FF&labelColor=050505" alt="License" /></a></td>
+<td><a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/github/actions/workflow/status/PauzeDevs/Auralis-TV/android.yml?branch=Auralis&style=for-the-badge&label=BUILD&color=007BFF&labelColor=050505" alt="Build" /></a></td><td><a href="https://github.com/PauzeDevs/Auralis-TV/releases"><img src="https://img.shields.io/badge/RELEASES-VIEW-00C8FF?style=for-the-badge&labelColor=050505" alt="Releases" /></a></td><td><a href="https://github.com/PauzeDevs/Auralis-TV/blob/Auralis/LICENSE"><img src="https://img.shields.io/github/license/PauzeDevs/Auralis-TV?style=for-the-badge&color=00C8FF&labelColor=050505" alt="License" /></a></td>
 </tr>
 </table>
 
