@@ -80,15 +80,15 @@ internal fun updatedRecentPackages(current: List<String>, packageName: String): 
         .distinct()
         .take(12)
 
-private suspend fun requestInitialFocus(requestFocus: () -> Boolean) {
+private suspend fun requestInitialFocus(requestFocus: () -> Unit) {
     repeat(5) {
         withFrameNanos { }
-        val focused = try {
+        try {
             requestFocus()
+            return
         } catch (_: IllegalStateException) {
-            false
+            // Wait for the next frame if Compose has not attached the focus target yet.
         }
-        if (focused) return
     }
 }
 
