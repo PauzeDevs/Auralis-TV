@@ -43,7 +43,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -538,10 +540,12 @@ private fun AuralisHome(
     val dateLabel = currentTime.format(
         DateTimeFormatter.ofPattern("EEE, d MMM", Locale.getDefault())
     )
+    val homeScrollState = rememberScrollState()
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         // Layout responds to usable dp space (resolution + density), not the TV's inch size.
         val compact = maxHeight < 620.dp || maxWidth < 900.dp
+        val shouldScroll = maxHeight < 780.dp
         val horizontalPadding = when {
             maxWidth < 700.dp -> 18.dp
             maxWidth < 1000.dp -> 30.dp
@@ -585,7 +589,11 @@ private fun AuralisHome(
                     vertical = verticalPadding
                 )
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (shouldScroll) Modifier.verticalScroll(homeScrollState) else Modifier)
+            ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
@@ -701,7 +709,11 @@ private fun AuralisHome(
                     }
                 }
 
-                Spacer(Modifier.weight(1f))
+                if (shouldScroll) {
+                    Spacer(Modifier.height(12.dp))
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "Auralis TV",
