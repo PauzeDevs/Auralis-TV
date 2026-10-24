@@ -2,6 +2,7 @@ package dev.pauze.auralis
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.net.Uri
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.RenderEffect
@@ -14,6 +15,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -69,6 +71,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 import android.os.Build
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -87,6 +93,31 @@ private data class TvApp(
     val launchActivityName: String,
     val icon: Bitmap
 )
+
+private data class FeaturedMovie(
+    val id: String,
+    val title: String,
+    val year: String,
+    val description: String,
+    val genres: String,
+    val rating: String?,
+    val posterUrl: String,
+    val backgroundUrl: String,
+    val trailerUrl: String?
+) {
+    val imdbUrl: String
+        get() = "https://www.imdb.com/title/$id/"
+
+    val actionUrl: String
+        get() = trailerUrl ?: imdbUrl
+
+    val metadataLine: String
+        get() = listOfNotNull(
+            year.takeIf { it.isNotBlank() },
+            genres.takeIf { it.isNotBlank() },
+            rating?.let { "IMDb $it" }
+        ).joinToString("  •  ")
+}
 
 private val Accent = Color(0xFF63B8FF)
 private val Ink = Color(0xFF050506)
@@ -115,6 +146,10 @@ class MainActivity : ComponentActivity() {
     private var appsLoading by mutableStateOf(true)
     private var appsLoadJob: Job? = null
     private var appLoadGeneration = 0
+    private var featuredMovies by mutableStateOf<List<FeaturedMovie>>(emptyList())
+    private var moviesLoading by mutableStateOf(true)
+    private var moviesLoadJob: Job? = null
+    private var movieLoadGeneration = 0
     private var hasResumedOnce = false
     private lateinit var preferences: android.content.SharedPreferences
 
@@ -137,6 +172,8 @@ class MainActivity : ComponentActivity() {
                     apps = installedApps,
                     appsLoading = appsLoading,
                     recentApps = recentApps,
+                    movies = featuredMovies,
+                    moviesLoading = moviesLoading,
                     onLaunch = { app ->
                         if (launchApp(app)) {
                             recentPackages = updatedRecentPackages(recentPackages, app.packageName)
@@ -146,12 +183,17 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     onOpenSettings = { openSystemSettings() },
-                    onRefreshApps = { refreshApps() }
+                    onOpenMovie = { movie -> openMovie(movie) },
+                    onRefreshApps = {
+                        refreshApps()
+                        refreshFeaturedMovies()
+                    }
                 )
             }
         }
 
         refreshApps()
+        refreshFeaturedMovies()
     }
 
     private fun configureHighRefreshRate() {
@@ -207,6 +249,150 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun refreshFeaturedMovies() {
+        val generation = ++movieLoadGeneration
+        moviesLoadJob?.cancel()
+        moviesLoading = true
+        moviesLoadJob = lifecycleScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) { loadFeaturedMovies() }
+                if (generation == movieLoadGeneration) {
+                    featuredMovies = result
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                if (generation == movieLoadGeneration) {
+                    featuredMovies = emptyList()
+                }
+            } finally {
+                if (generation == movieLoadGeneration) {
+                    moviesLoading = false
+                }
+            }
+        }
+    }
+
+    private fun loadFeaturedMovies(): List<FeaturedMovie> {
+        val cachedPayload = runCatching {
+            preferences.getString(FEATURED_MOVIES_CACHE_KEY, null)
+        }.getOrNull()
+        var connection: HttpURLConnection? = null
+
+        return try {
+            connection = URL(FEATURED_MOVIES_URL).openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = MOVIE_CATALOG_TIMEOUT_MS
+            connection.readTimeout = MOVIE_CATALOG_TIMEOUT_MS
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("User-Agent", "Auralis-TV/0.2")
+            connection.useCaches = true
+
+            val payload = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            val result = parseFeaturedMovies(payload)
+            if (result.isNotEmpty()) {
+                preferences.edit().putString(FEATURED_MOVIES_CACHE_KEY, payload).apply()
+                result
+            } else {
+                cachedPayload?.let(::parseFeaturedMovies).orEmpty()
+            }
+        } catch (_: Exception) {
+            cachedPayload?.let(::parseFeaturedMovies).orEmpty()
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    private fun parseFeaturedMovies(payload: String): List<FeaturedMovie> {
+        val metas = runCatching { JSONObject(payload).optJSONArray("metas") }.getOrNull()
+            ?: return emptyList()
+        val movies = ArrayList<FeaturedMovie>()
+
+        for (index in 0 until metas.length()) {
+            if (movies.size >= MAX_FEATURED_MOVIES) break
+            val item = metas.optJSONObject(index) ?: continue
+            val id = item.optString("id").takeIf { it.isNotBlank() && it != "null" }
+                ?: item.optString("imdb_id")
+            if (!id.startsWith("tt") || id.length < 4 || !id.drop(2).all(Char::isDigit)) continue
+
+            val title = item.optString("name").trim()
+            if (title.isBlank() || title == "null") continue
+
+            val poster = safeArtworkUrl(item.optString("poster"))
+            val background = safeArtworkUrl(item.optString("background")) ?: poster
+            if (poster == null && background == null) continue
+
+            val genreArray = item.optJSONArray("genres") ?: item.optJSONArray("genre")
+            val genres = buildList {
+                if (genreArray != null) {
+                    for (genreIndex in 0 until genreArray.length()) {
+                        val genre = genreArray.optString(genreIndex).trim()
+                        if (genre.isNotBlank() && genre != "null") add(genre)
+                        if (size == 3) break
+                    }
+                }
+            }.joinToString("  •  ")
+
+            val ratingText = item.optString("imdbRating").trim()
+            val rating = ratingText.takeIf {
+                val number = it.toDoubleOrNull()
+                number != null && number in 0.0..10.0
+            }
+            val rawYear = item.optString("year").ifBlank { item.optString("releaseInfo") }.trim()
+            val year = rawYear.takeIf { it.length == 4 && it.all(Char::isDigit) }.orEmpty()
+            val trailerArray = item.optJSONArray("trailerStreams") ?: item.optJSONArray("trailers")
+            val trailerId = trailerArray?.let { array ->
+                (0 until array.length()).asSequence()
+                    .mapNotNull { trailerIndex ->
+                        val entry = array.optJSONObject(trailerIndex) ?: return@mapNotNull null
+                        entry.optString("ytId").ifBlank { entry.optString("source") }
+                    }
+                    .firstOrNull { it.matches(Regex("[A-Za-z0-9_-]{6,20}")) }
+            }
+            val description = item.optString("description").trim().takeUnless {
+                it.isBlank() || it == "null"
+            }.orEmpty()
+
+            movies += FeaturedMovie(
+                id = id,
+                title = title,
+                year = year,
+                description = description,
+                genres = genres,
+                rating = rating,
+                posterUrl = poster ?: background.orEmpty(),
+                backgroundUrl = background ?: poster.orEmpty(),
+                trailerUrl = trailerId?.let { "https://www.youtube.com/watch?v=$it" }
+            )
+        }
+        return movies
+    }
+
+    private fun safeArtworkUrl(rawUrl: String): String? {
+        val uri = runCatching { Uri.parse(rawUrl) }.getOrNull() ?: return null
+        return rawUrl.takeIf {
+            uri.scheme == "https" && uri.host == "images.metahub.space"
+        }
+    }
+
+    private fun openMovie(movie: FeaturedMovie) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(movie.actionUrl)))
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(
+                this,
+                "No app is available to open this film's trailer or details.",
+                Toast.LENGTH_SHORT
+            ).show()
+        } catch (_: SecurityException) {
+            Toast.makeText(
+                this,
+                "Auralis TV couldn't open this film right now.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     private fun openSystemSettings() {
         try {
             startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
@@ -231,18 +417,8 @@ class MainActivity : ComponentActivity() {
                 app.packageName,
                 app.launchActivityName
             )
-            if (launchIntent == null) {
-                Toast.makeText(
-                    this,
-                    "${app.label} is no longer available.",
-                    Toast.LENGTH_SHORT
-                ).show()
-                refreshApps()
-                false
-            } else {
-                startActivity(launchIntent)
-                true
-            }
+            startActivity(launchIntent)
+            true
         } catch (exception: ActivityNotFoundException) {
             Toast.makeText(
                 this,
@@ -316,6 +492,11 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val ICON_BITMAP_SIZE = 128
         private const val RECENT_PACKAGES_KEY = "recent_packages"
+        private const val FEATURED_MOVIES_CACHE_KEY = "featured_movies_catalog"
+        private const val FEATURED_MOVIES_URL =
+            "https://cinemeta-catalogs.strem.io/top/catalog/movie/top.json"
+        private const val MOVIE_CATALOG_TIMEOUT_MS = 8_000
+        private const val MAX_FEATURED_MOVIES = 20
     }
 }
 
@@ -324,11 +505,23 @@ private fun AuralisHome(
     apps: List<TvApp>,
     appsLoading: Boolean,
     recentApps: List<TvApp>,
+    movies: List<FeaturedMovie>,
+    moviesLoading: Boolean,
     onLaunch: (TvApp) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenMovie: (FeaturedMovie) -> Unit,
     onRefreshApps: () -> Unit
 ) {
     var drawerOpen by remember { mutableStateOf(false) }
+    var selectedMovieId by remember(movies.firstOrNull()?.id) {
+        mutableStateOf(movies.firstOrNull()?.id)
+    }
+    LaunchedEffect(movies) {
+        if (movies.none { it.id == selectedMovieId }) {
+            selectedMovieId = movies.firstOrNull()?.id
+        }
+    }
+    val selectedMovie = movies.firstOrNull { it.id == selectedMovieId } ?: movies.firstOrNull()
     BackHandler(enabled = drawerOpen) { drawerOpen = false }
 
     var currentTime by remember { mutableStateOf(LocalDateTime.now()) }
@@ -432,12 +625,34 @@ private fun AuralisHome(
                 Spacer(Modifier.height(if (compact) 12.dp else 20.dp))
                 TopShelf(
                     app = featuredApp,
+                    movie = selectedMovie,
+                    movies = movies,
                     recentlyOpened = featuredIsRecent,
                     height = heroHeight,
                     compact = compact,
-                    initialFocus = featuredApp != null,
-                    onLaunch = onLaunch
+                    initialFocus = featuredApp != null || selectedMovie != null,
+                    onLaunch = onLaunch,
+                    onOpenMovie = onOpenMovie
                 )
+
+                if (movies.isNotEmpty()) {
+                    Spacer(Modifier.height(if (compact) 10.dp else 16.dp))
+                    SectionHeading(
+                        title = "Movie discovery",
+                        detail = if (moviesLoading) "Refreshing catalogue…" else "Focus to preview  •  OK for trailer"
+                    )
+                    Spacer(Modifier.height(if (compact) 6.dp else 9.dp))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp)) {
+                        itemsIndexed(movies, key = { _, movie -> movie.id }) { _, movie ->
+                            MovieTile(
+                                movie = movie,
+                                compact = compact,
+                                onFocused = { selectedMovieId = it.id },
+                                onClick = { onOpenMovie(movie) }
+                            )
+                        }
+                    }
+                }
 
                 if (recentApps.isNotEmpty()) {
                     Spacer(Modifier.height(if (compact) 12.dp else 20.dp))
@@ -745,21 +960,26 @@ private fun DrawerAppCard(
 @Composable
 private fun TopShelf(
     app: TvApp?,
+    movie: FeaturedMovie?,
+    movies: List<FeaturedMovie>,
     recentlyOpened: Boolean,
     height: Dp,
     compact: Boolean,
     initialFocus: Boolean,
-    onLaunch: (TvApp) -> Unit
+    onLaunch: (TvApp) -> Unit,
+    onOpenMovie: (FeaturedMovie) -> Unit
 ) {
-    var focused by remember(app?.packageName) { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.012f else 1f,
+        animationSpec = tween(durationMillis = 220),
         label = "topShelfScale"
     )
     val focusRequester = remember { FocusRequester() }
+    val canActivate = movie != null || app != null
 
-    LaunchedEffect(initialFocus, app?.packageName) {
-        if (initialFocus) {
+    LaunchedEffect(initialFocus) {
+        if (initialFocus && canActivate) {
             requestInitialFocus { focusRequester.requestFocus() }
         }
     }
@@ -772,35 +992,66 @@ private fun TopShelf(
             .clip(RoundedCornerShape(30.dp))
             .background(
                 Brush.horizontalGradient(
-                    listOf(
-                        Color(0xFF252D3A),
-                        Color(0xFF171B22),
-                        Color(0xFF101114)
-                    )
+                    listOf(Color(0xFF252D3A), Color(0xFF171B22), Color(0xFF101114))
                 )
             )
             .border(
                 width = if (focused) 2.dp else 1.dp,
                 color = if (focused) Accent else Color(0xFF343943),
-                shape = RoundedCornerShape(26.dp)
+                shape = RoundedCornerShape(30.dp)
             )
             .then(
-                if (app != null) {
+                if (canActivate) {
                     Modifier
                         .focusRequester(focusRequester)
                         .onFocusChanged { focused = it.isFocused }
-                        .clickable { onLaunch(app) }
+                        .clickable {
+                            if (movie != null) onOpenMovie(movie) else app?.let(onLaunch)
+                        }
                 } else {
                     Modifier
                 }
             )
-            .padding(
-                horizontal = if (compact) 22.dp else 34.dp,
-                vertical = if (compact) 14.dp else 20.dp
-            )
     ) {
-        // Use the selected app artwork as a subtle, cinematic ambient layer.
-        if (app != null) {
+        if (movie != null) {
+            Crossfade(
+                targetState = movie.id,
+                animationSpec = tween(durationMillis = 520),
+                label = "cinematicBackdropCrossfade"
+            ) { movieId ->
+                val artwork = movies.firstOrNull { it.id == movieId } ?: movie
+                AsyncImage(
+                    model = artwork.backgroundUrl.ifBlank { artwork.posterUrl },
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = if (compact) 0.56f else 0.72f }
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color(0xF207090D),
+                                Color(0xD20B0E14),
+                                Color(0x64101114)
+                            )
+                        )
+                    )
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0x16000000), Color(0xA8000000))
+                        )
+                    )
+            )
+        } else if (app != null) {
             Image(
                 bitmap = app.icon.asImageBitmap(),
                 contentDescription = null,
@@ -819,8 +1070,14 @@ private fun TopShelf(
                     )
             )
         }
+
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    horizontal = if (compact) 22.dp else 34.dp,
+                    vertical = if (compact) 14.dp else 20.dp
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
@@ -831,6 +1088,7 @@ private fun TopShelf(
             ) {
                 Text(
                     text = when {
+                        movie != null -> "FEATURED FILM  •  DISCOVER"
                         app == null -> "AURALIS TV"
                         recentlyOpened -> "PICK UP WHERE YOU LEFT OFF"
                         else -> "READY WHEN YOU ARE"
@@ -839,11 +1097,12 @@ private fun TopShelf(
                     fontSize = if (compact) 9.sp else 10.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.5.sp,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
                 Text(
-                    text = app?.label ?: "Your TV, your apps.",
+                    text = movie?.title ?: app?.label ?: "Your TV, your apps.",
                     color = Color.White,
                     fontSize = if (compact) 25.sp else 35.sp,
                     lineHeight = if (compact) 29.sp else 39.sp,
@@ -851,11 +1110,34 @@ private fun TopShelf(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (!compact) {
+
+                if (movie != null) {
+                    if (movie.metadataLine.isNotBlank()) {
+                        Spacer(Modifier.height(if (compact) 3.dp else 6.dp))
+                        Text(
+                            text = movie.metadataLine,
+                            color = Color(0xFFCFD7E2),
+                            fontSize = if (compact) 10.sp else 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    if (!compact && movie.description.isNotBlank()) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = movie.description,
+                            color = Color(0xFFCED5E0),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                } else if (!compact) {
                     Spacer(Modifier.height(6.dp))
                     Text(
                         text = if (app == null) {
-                            "Launchable apps will appear here."
+                            if (moviesLoading) "Preparing your cinematic home screen…" else "Launchable apps will appear here."
                         } else if (recentlyOpened) {
                             "Recently opened • Ready to launch"
                         } else {
@@ -863,47 +1145,139 @@ private fun TopShelf(
                         },
                         color = Color(0xFFB7C0CE),
                         fontSize = 13.sp,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
+
                 Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
                 Text(
-                    text = if (app == null) "NO LAUNCHABLE APPS FOUND" else "PRESS OK TO OPEN",
+                    text = when {
+                        movie?.trailerUrl != null -> "PRESS OK TO WATCH TRAILER"
+                        movie != null -> "PRESS OK FOR FILM DETAILS"
+                        app != null -> "PRESS OK TO OPEN"
+                        else -> "A CINEMATIC HOME FOR YOUR TV"
+                    },
                     color = if (focused) Color.White else Color(0xFFD5DFEE),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.2.sp
+                    letterSpacing = 1.2.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .size(if (compact) 88.dp else 154.dp)
-                    .clip(RoundedCornerShape(if (compact) 18.dp else 25.dp))
-                    .background(Color(0xFF252B35))
-                    .border(
-                        1.dp,
-                        Color(0x3FFFFFFF),
-                        RoundedCornerShape(if (compact) 18.dp else 25.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                if (app != null) {
+            if (movie?.posterUrl?.isNotBlank() == true) {
+                AsyncImage(
+                    model = movie.posterUrl,
+                    contentDescription = movie.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(
+                            width = if (compact) 60.dp else 84.dp,
+                            height = if (compact) 92.dp else 132.dp
+                        )
+                        .clip(RoundedCornerShape(if (compact) 10.dp else 14.dp))
+                        .border(
+                            1.dp,
+                            Color(0x75FFFFFF),
+                            RoundedCornerShape(if (compact) 10.dp else 14.dp)
+                        )
+                )
+            } else if (app != null) {
+                Box(
+                    modifier = Modifier
+                        .size(if (compact) 88.dp else 154.dp)
+                        .clip(RoundedCornerShape(if (compact) 18.dp else 25.dp))
+                        .background(Color(0xFF252B35))
+                        .border(
+                            1.dp,
+                            Color(0x3FFFFFFF),
+                            RoundedCornerShape(if (compact) 18.dp else 25.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
                     Image(
                         bitmap = app.icon.asImageBitmap(),
                         contentDescription = app.label,
                         modifier = Modifier.size(if (compact) 66.dp else 116.dp)
                     )
-                } else {
-                    Text(
-                        "A",
-                        color = Accent,
-                        fontSize = if (compact) 40.sp else 64.sp,
-                        fontWeight = FontWeight.Light
-                    )
                 }
+            } else {
+                Text(
+                    "A",
+                    color = Accent,
+                    fontSize = if (compact) 40.sp else 64.sp,
+                    fontWeight = FontWeight.Light
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun MovieTile(
+    movie: FeaturedMovie,
+    compact: Boolean,
+    onFocused: (FeaturedMovie) -> Unit,
+    onClick: () -> Unit
+) {
+    var focused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.055f else 1f,
+        animationSpec = tween(durationMillis = if (focused) 180 else 140),
+        label = "movieTileScale"
+    )
+    val shape = RoundedCornerShape(if (compact) 13.dp else 16.dp)
+
+    Column(
+        modifier = Modifier
+            .width(if (compact) 142.dp else 184.dp)
+            .scale(scale)
+            .onFocusChanged {
+                focused = it.isFocused
+                if (it.isFocused) onFocused(movie)
+            }
+            .clickable(onClick = onClick)
+            .padding(1.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(if (compact) 68.dp else 96.dp)
+                .clip(shape)
+                .background(Color(0xFF20242B))
+                .border(
+                    width = if (focused) 2.dp else 1.dp,
+                    color = if (focused) Accent else Color(0x55FFFFFF),
+                    shape = shape
+                )
+        ) {
+            AsyncImage(
+                model = movie.backgroundUrl.ifBlank { movie.posterUrl },
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0x08000000), Color(0x99000000))
+                        )
+                    )
+            )
+        }
+        Spacer(Modifier.height(if (compact) 5.dp else 7.dp))
+        Text(
+            text = movie.title,
+            color = if (focused) Color.White else Color(0xFFCDD4DF),
+            fontSize = if (compact) 11.sp else 13.sp,
+            fontWeight = if (focused) FontWeight.SemiBold else FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
