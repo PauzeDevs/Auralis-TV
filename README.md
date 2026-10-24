@@ -1,21 +1,21 @@
 <div align="center">
 
-<img src="https://readme-typing-svg.demolab.com?font=Inter&weight=600&size=34&pause=1000&color=B7F36B&center=true&vCenter=true&width=600&lines=Auralis+TV;A+better+TV+home" alt="Auralis TV" />
+<img src="https://readme-typing-svg.demolab.com?font=Inter&weight=600&size=34&pause=1000&color=E5E7EB&center=true&vCenter=true&width=600&lines=Auralis+TV;A+better+TV+home" alt="Auralis TV" />
 
 <p><strong>A clean, cinematic launcher for Android TV and Google TV.</strong></p>
 
 <p>
-  <a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/github/actions/workflow/status/PauzeDevs/Auralis-TV/android.yml?branch=main&style=for-the-badge&label=Build" alt="Build status" /></a>
-  <img src="https://img.shields.io/badge/Platform-Android%20TV%20%2F%20Google%20TV-101820?style=for-the-badge" alt="Android TV and Google TV" />
-  <a href="https://github.com/PauzeDevs/Auralis-TV/releases"><img src="https://img.shields.io/github/v/release/PauzeDevs/Auralis-TV?style=for-the-badge&label=Release&color=8B9A8A" alt="Latest release" /></a>
-  <a href="https://github.com/PauzeDevs/Auralis-TV/blob/main/LICENSE"><img src="https://img.shields.io/github/license/PauzeDevs/Auralis-TV?style=for-the-badge&color=8B9A8A" alt="License" /></a>
+  <a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/github/actions/workflow/status/PauzeDevs/Auralis-TV/android.yml?branch=main&style=for-the-badge&label=Build&color=2C2C2E&labelColor=171717" alt="Build status" /></a>
+  <img src="https://img.shields.io/badge/Platform-Android%20TV%20%2F%20Google%20TV-2C2C2E?style=for-the-badge&labelColor=171717" alt="Android TV and Google TV" />
+  <a href="https://github.com/PauzeDevs/Auralis-TV/releases"><img src="https://img.shields.io/github/v/release/PauzeDevs/Auralis-TV?style=for-the-badge&label=Release&color=2C2C2E&labelColor=171717" alt="Latest release" /></a>
+  <a href="https://github.com/PauzeDevs/Auralis-TV/blob/main/LICENSE"><img src="https://img.shields.io/github/license/PauzeDevs/Auralis-TV?style=for-the-badge&color=2C2C2E&labelColor=171717" alt="License" /></a>
 </p>
 
 <p>
-  <a href="https://github.com/PauzeDevs/Auralis-TV"><img src="https://img.shields.io/badge/Repository-Explore-343A40?style=for-the-badge&logo=github&logoColor=white" alt="Explore repository" /></a>
-  <a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/badge/Builds-Check-343A40?style=for-the-badge&logo=githubactions&logoColor=white" alt="Check builds" /></a>
-  <a href="https://github.com/PauzeDevs/Auralis-TV/issues"><img src="https://img.shields.io/badge/Issues-Report-343A40?style=for-the-badge&logo=github&logoColor=white" alt="Report a bug" /></a>
-  <a href="https://github.com/PauzeDevs/Auralis-TV/discussions"><img src="https://img.shields.io/badge/Community-Discuss-343A40?style=for-the-badge&logo=github&logoColor=white" alt="Join discussion" /></a>
+  <a href="https://github.com/PauzeDevs/Auralis-TV"><img src="https://img.shields.io/badge/Repository-Explore-2C2C2E?style=for-the-badge&logo=github&logoColor=E5E7EB&labelColor=171717" alt="Explore repository" /></a>
+  <a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/badge/Builds-Check-2C2C2E?style=for-the-badge&logo=githubactions&logoColor=E5E7EB&labelColor=171717" alt="Check builds" /></a>
+  <a href="https://github.com/PauzeDevs/Auralis-TV/issues"><img src="https://img.shields.io/badge/Issues-Report-2C2C2E?style=for-the-badge&logo=github&logoColor=E5E7EB&labelColor=171717" alt="Report a bug" /></a>
+  <a href="https://github.com/PauzeDevs/Auralis-TV/discussions"><img src="https://img.shields.io/badge/Community-Discuss-2C2C2E?style=for-the-badge&logo=github&logoColor=E5E7EB&labelColor=171717" alt="Join discussion" /></a>
 </p>
 
 </div>
@@ -24,15 +24,15 @@
 
 ## About
 
-Auralis TV is a minimal, remote-friendly Android TV launcher built with Kotlin and Jetpack Compose.
+Auralis TV is a minimal, remote-friendly launcher for Android TV and Google TV, built with Kotlin and Jetpack Compose.
 
-Inspired by the visual style of tvOS. Not affiliated with Apple.
+Inspired by the clean, cinematic feel of tvOS. Not affiliated with Apple.
 
 ## Highlights
 
-- Clean, cinematic home screen
-- Quick access to installed apps
+- Minimal home screen
 - Remote-friendly navigation
+- Quick access to installed apps
 
 ## Download
 
@@ -40,7 +40,7 @@ Get the latest successful build from [GitHub Actions](https://github.com/PauzeDe
 
 ## Compatibility
 
-Made for Android TV and Google TV. Compatibility and default-launcher support depend on your device and firmware.
+Designed for Android TV and Google TV. Device and firmware restrictions may affect default-launcher support.
 
 ## Build
 
