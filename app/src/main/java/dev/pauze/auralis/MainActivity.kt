@@ -346,11 +346,27 @@ private fun AuralisHome(
     )
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val compact = maxHeight < 620.dp
-        val horizontalPadding = if (compact) 28.dp else 64.dp
-        val verticalPadding = if (compact) 14.dp else 30.dp
-        val heroHeight = if (compact) 166.dp else 250.dp
-        val tileWidth = if (compact) 156.dp else 208.dp
+        // Layout responds to usable dp space (resolution + density), not the TV's inch size.
+        val compact = maxHeight < 620.dp || maxWidth < 900.dp
+        val horizontalPadding = when {
+            maxWidth < 700.dp -> 18.dp
+            maxWidth < 1000.dp -> 30.dp
+            maxWidth < 1400.dp -> 44.dp
+            else -> 64.dp
+        }
+        val verticalPadding = if (compact) 14.dp else if (maxHeight < 800.dp) 22.dp else 30.dp
+        val heroHeight = when {
+            maxHeight < 540.dp -> 142.dp
+            compact -> 178.dp
+            maxHeight < 800.dp -> 218.dp
+            else -> 250.dp
+        }
+        val tileWidth = when {
+            maxWidth < 700.dp -> 132.dp
+            compact -> 156.dp
+            maxWidth > 1600.dp -> 224.dp
+            else -> 208.dp
+        }
         val featuredApp = recentApps.firstOrNull() ?: apps.firstOrNull()
         val featuredIsRecent = recentApps.isNotEmpty()
 
