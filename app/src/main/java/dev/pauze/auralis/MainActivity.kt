@@ -650,7 +650,7 @@ private fun AuralisHome(
                     Spacer(Modifier.height(if (compact) 10.dp else 16.dp))
                     SectionHeading(
                         title = "Movie discovery",
-                        detail = if (moviesLoading) "Refreshing catalogue…" else "Focus to preview  •  OK for trailer"
+                        detail = if (moviesLoading) "Refreshing catalogue…" else "Focus to preview  •  OK for trailer/details"
                     )
                     Spacer(Modifier.height(if (compact) 6.dp else 9.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp)) {
