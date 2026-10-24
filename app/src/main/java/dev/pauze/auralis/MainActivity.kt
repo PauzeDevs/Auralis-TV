@@ -782,11 +782,13 @@ private fun AuralisHome(
                     Spacer(Modifier.weight(1f))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Auralis TV",
-                        color = Color(0xFF788597),
-                        fontSize = 11.sp
-                    )
+                    if (!compact) {
+                        Text(
+                            "Auralis TV",
+                            color = Color(0xFF788597),
+                            fontSize = 11.sp
+                        )
+                    }
                     Spacer(Modifier.weight(1f))
                     FocusButton(
                         label = "Apps",
@@ -1079,7 +1081,11 @@ private fun RecommendationsDrawer(
                             fontSize = if (compact) 11.sp else 13.sp
                         )
                     }
-                    FocusButton(label = "Close", initialFocus = false, onClick = onClose)
+                    FocusButton(
+                        label = "Close",
+                        initialFocus = streamingApps.isEmpty() && movies.isEmpty(),
+                        onClick = onClose
+                    )
                 }
 
                 Spacer(Modifier.height(if (compact) 14.dp else 20.dp))
@@ -1099,11 +1105,12 @@ private fun RecommendationsDrawer(
                     )
                 } else {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(if (compact) 9.dp else 12.dp)) {
-                        items(streamingApps, key = { it.provider.id }) { installed ->
+                        itemsIndexed(streamingApps, key = { _, item -> item.provider.id }) { index, installed ->
                             StreamingServiceTile(
                                 installed = installed,
                                 selected = installed.provider.id == selectedProvider?.provider?.id,
                                 compact = compact,
+                                initialFocus = index == 0,
                                 onSelect = { selectedProviderId = installed.provider.id }
                             )
                         }
@@ -1160,10 +1167,11 @@ private fun RecommendationsDrawer(
                     )
                 } else {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 14.dp)) {
-                        itemsIndexed(movies, key = { _, movie -> movie.id }) { _, movie ->
+                        itemsIndexed(movies, key = { _, movie -> movie.id }) { index, movie ->
                             MovieTile(
                                 movie = movie,
                                 compact = compact,
+                                initialFocus = streamingApps.isEmpty() && index == 0,
                                 onFocused = onSelectMovie,
                                 onClick = { onOpenMovie(movie) }
                             )
@@ -1188,9 +1196,14 @@ private fun StreamingServiceTile(
     installed: InstalledStreamingApp,
     selected: Boolean,
     compact: Boolean,
+    initialFocus: Boolean,
     onSelect: () -> Unit
 ) {
     var focused by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(initialFocus) {
+        if (initialFocus) requestInitialFocus { focusRequester.requestFocus() }
+    }
     val scale by animateFloatAsState(
         targetValue = if (focused || selected) 1.035f else 1f,
         animationSpec = tween(durationMillis = 160),
@@ -1217,6 +1230,7 @@ private fun StreamingServiceTile(
                 color = if (selected || focused) Accent else Color(0x44FFFFFF),
                 shape = shape
             )
+            .focusRequester(focusRequester)
             .onFocusChanged {
                 focused = it.isFocused
                 if (it.isFocused) onSelect()
@@ -1601,10 +1615,15 @@ private fun TopShelf(
 private fun MovieTile(
     movie: FeaturedMovie,
     compact: Boolean,
+    initialFocus: Boolean,
     onFocused: (FeaturedMovie) -> Unit,
     onClick: () -> Unit
 ) {
     var focused by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(initialFocus) {
+        if (initialFocus) requestInitialFocus { focusRequester.requestFocus() }
+    }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.055f else 1f,
         animationSpec = tween(durationMillis = if (focused) 180 else 140),
@@ -1616,6 +1635,7 @@ private fun MovieTile(
         modifier = Modifier
             .width(if (compact) 142.dp else 184.dp)
             .scale(scale)
+            .focusRequester(focusRequester)
             .onFocusChanged {
                 focused = it.isFocused
                 if (it.isFocused) onFocused(movie)
