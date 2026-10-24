@@ -63,6 +63,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -798,6 +799,26 @@ private fun TopShelf(
                 vertical = if (compact) 14.dp else 20.dp
             )
     ) {
+        // Use the selected app artwork as a subtle, cinematic ambient layer.
+        if (app != null) {
+            Image(
+                bitmap = app.icon.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = if (compact) 0.10f else 0.16f }
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(Color(0xF2252D3A), Color(0xCC171B22), Color(0x80101114))
+                        )
+                    )
+            )
+        }
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically
