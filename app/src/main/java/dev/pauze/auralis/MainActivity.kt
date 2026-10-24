@@ -333,7 +333,7 @@ private fun HeroCard(height: Dp, compact: Boolean) {
         ) {
             Text(
                 "MADE FOR THE BIG SCREEN",
-                color = Lime,
+                color = Accent,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.8.sp
@@ -373,7 +373,7 @@ private fun HeroCard(height: Dp, compact: Boolean) {
             ) {
                 Text(
                     "A",
-                    color = Lime,
+                    color = Accent,
                     fontSize = if (compact) 44.sp else 62.sp,
                     fontWeight = FontWeight.Light
                 )
@@ -430,7 +430,7 @@ private fun AppTile(
             .background(if (focused) Color(0xFF2B2B2F) else TileSurface)
             .border(
                 width = if (focused) 2.dp else 1.dp,
-                color = if (focused) Lime else Color(0xFF303034),
+                color = if (focused) Accent else Color(0xFF303034),
                 shape = RoundedCornerShape(18.dp)
             )
             .focusRequester(focusRequester)
