@@ -10,8 +10,7 @@ import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Bundle
 import android.provider.Settings
-import android.view.Display
-import android.view.WindowManager
+import android.speech.RecognizerIntent
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.ComponentActivity
@@ -50,8 +49,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,6 +67,9 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -79,6 +83,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import org.json.JSONObject
+import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
 import android.os.Build
@@ -89,6 +94,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.lifecycle.lifecycleScope
+import androidx.activity.result.contract.ActivityResultContracts
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -107,7 +113,8 @@ private data class InstalledStreamingApp(
 
 private enum class LauncherDrawer {
     APPS,
-    RECOMMENDATIONS
+    RECOMMENDATIONS,
+    CONTROL_CENTER
 }
 
 private data class FeaturedMovie(
@@ -137,7 +144,6 @@ private data class FeaturedMovie(
 
 private val Accent = Color(0xFF63B8FF)
 private val Ink = Color(0xFF050506)
-private val TileSurface = Color(0xFF171719)
 
 internal fun updatedRecentPackages(current: List<String>, packageName: String): List<String> =
     (listOf(packageName) + current.filterNot { it == packageName })
@@ -167,7 +173,17 @@ class MainActivity : ComponentActivity() {
     private var moviesLoadJob: Job? = null
     private var movieLoadGeneration = 0
     private var hasResumedOnce = false
+    private val interactionRevision = mutableStateOf(0)
+    private var recognizedSearchQuery by mutableStateOf<String?>(null)
     private lateinit var preferences: android.content.SharedPreferences
+    private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val phrase = if (result.resultCode == RESULT_OK) {
+            result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull().orEmpty()
+        } else {
+            ""
+        }
+        if (phrase.isNotBlank()) recognizedSearchQuery = phrase
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -176,9 +192,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
-                var recentPackages by remember {
-                    mutableStateOf(readRecentPackages())
+                var activeProfile by remember { mutableStateOf(readActiveProfile()) }
+                var recentPackages by remember(activeProfile) {
+                    mutableStateOf(readRecentPackages(activeProfile))
                 }
+                var watchlist by remember(activeProfile) { mutableStateOf(readWatchlist(activeProfile)) }
+                var savedWatchlistMovies by remember(activeProfile) { mutableStateOf(readStoredWatchlist(activeProfile)) }
+                var profiles by remember { mutableStateOf(readProfiles()) }
                 val recentApps = remember(installedApps, recentPackages) {
                     val byPackage = installedApps.associateBy { it.packageName }
                     recentPackages.mapNotNull { byPackage[it] }
@@ -190,11 +210,18 @@ class MainActivity : ComponentActivity() {
                     recentApps = recentApps,
                     movies = featuredMovies,
                     moviesLoading = moviesLoading,
+                    watchlist = watchlist,
+                    savedWatchlistMovies = savedWatchlistMovies,
+                    activeProfile = activeProfile,
+                    profiles = profiles,
+                    voiceQuery = recognizedSearchQuery,
+                    interactionRevision = interactionRevision,
+                    onVoiceQueryConsumed = { recognizedSearchQuery = null },
                     onLaunch = { app ->
                         if (launchApp(app)) {
                             recentPackages = updatedRecentPackages(recentPackages, app.packageName)
                             preferences.edit()
-                                .putString(RECENT_PACKAGES_KEY, recentPackages.joinToString("\n"))
+                                .putString(recentPackagesKey(activeProfile), recentPackages.joinToString("\n"))
                                 .apply()
                         }
                     },
@@ -202,6 +229,34 @@ class MainActivity : ComponentActivity() {
                     onSetAsHome = { requestDefaultLauncher() },
                     onOpenMovie = { movie -> openMovie(movie) },
                     onSearchOnProvider = { movie, provider -> openMovieOnProvider(movie, provider) },
+                    onSearchPhraseOnProvider = { query, provider -> openSearchOnProvider(query, provider) },
+                    onToggleWatchlist = { movie ->
+                        watchlist = if (movie.id in watchlist) watchlist - movie.id else listOf(movie.id) + watchlist
+                        savedWatchlistMovies = if (movie.id in savedWatchlistMovies.map { it.id }) {
+                            savedWatchlistMovies.filterNot { it.id == movie.id }
+                        } else {
+                            (listOf(movie) + savedWatchlistMovies).distinctBy { it.id }
+                        }
+                        preferences.edit()
+                            .putString(watchlistKey(activeProfile), watchlist.joinToString("\n"))
+                            .putString(watchlistDataKey(activeProfile), encodeWatchlist(savedWatchlistMovies))
+                            .apply()
+                    },
+                    onSelectProfile = { name ->
+                        activeProfile = name
+                        preferences.edit().putString("active_profile", name).apply()
+                        recentPackages = readRecentPackages(name)
+                        watchlist = readWatchlist(name)
+                        savedWatchlistMovies = readStoredWatchlist(name)
+                    },
+                    onAddProfile = { name ->
+                        val clean = normalizedProfileName(name)
+                        if (canAddProfile(clean, profiles)) {
+                            profiles = profiles + clean
+                            preferences.edit().putString("profiles", profiles.filterNot { it == "Primary" }.joinToString("\n")).apply()
+                        }
+                    },
+                    onVoiceSearch = { startVoiceSearch() },
                     onRefreshApps = {
                         refreshApps()
                         refreshFeaturedMovies()
@@ -232,10 +287,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        interactionRevision.value++
         if (hasResumedOnce) {
             refreshApps()
         }
         hasResumedOnce = true
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        interactionRevision.value++
     }
 
     private fun refreshApps() {
@@ -294,6 +355,7 @@ class MainActivity : ComponentActivity() {
     private fun loadFeaturedMovies(): List<FeaturedMovie> {
         val cachedPayload = runCatching {
             preferences.getString(FEATURED_MOVIES_CACHE_KEY, null)
+                ?.takeIf { it.length <= MAX_CATALOG_CHARS }
         }.getOrNull()
         var connection: HttpURLConnection? = null
 
@@ -306,7 +368,12 @@ class MainActivity : ComponentActivity() {
             connection.setRequestProperty("User-Agent", "Auralis-TV/0.2")
             connection.useCaches = true
 
-            val payload = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            if (connection.contentLength > MAX_CATALOG_CHARS) {
+                throw java.io.IOException("Catalogue response exceeds the size limit")
+            }
+            val payload = connection.inputStream.bufferedReader(Charsets.UTF_8).use {
+                readBoundedText(it, MAX_CATALOG_CHARS)
+            }
             val result = parseFeaturedMovies(payload)
             if (result.isNotEmpty()) {
                 preferences.edit().putString(FEATURED_MOVIES_CACHE_KEY, payload).apply()
@@ -451,7 +518,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openMovieOnProvider(movie: FeaturedMovie, provider: StreamingProvider) {
-        val searchIntent = Intent(Intent.ACTION_VIEW, Uri.parse(provider.searchUrlFor(movie.title)))
+        openSearchOnProvider(movie.title, provider)
+    }
+
+    private fun openSearchOnProvider(query: String, provider: StreamingProvider) {
+        val searchIntent = Intent(Intent.ACTION_VIEW, Uri.parse(provider.searchUrlFor(query)))
         try {
             startActivity(searchIntent)
         } catch (_: ActivityNotFoundException) {
@@ -463,7 +534,7 @@ class MainActivity : ComponentActivity() {
         } catch (_: SecurityException) {
             Toast.makeText(
                 this,
-                "Couldn't open ${provider.displayName} for this title.",
+                "Couldn't open ${provider.displayName} for search.",
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -513,13 +584,73 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun readRecentPackages(): List<String> =
-        preferences.getString(RECENT_PACKAGES_KEY, "")
+    private fun readActiveProfile(): String {
+        val savedProfile = normalizedProfileName(preferences.getString("active_profile", "Primary").orEmpty())
+        return readProfiles().firstOrNull { it.equals(savedProfile, ignoreCase = true) } ?: "Primary"
+    }
+
+    private fun readRecentPackages(profile: String): List<String> =
+        preferences.getString(recentPackagesKey(profile), if (profile == "Primary") preferences.getString(RECENT_PACKAGES_KEY, "") else "")
             .orEmpty()
             .split("\n")
             .filter { it.isNotBlank() }
             .distinct()
             .take(12)
+
+    private fun readWatchlist(profile: String): List<String> =
+        preferences.getString(watchlistKey(profile), "").orEmpty().split("\n").filter(String::isNotBlank).distinct()
+
+    private fun readStoredWatchlist(profile: String): List<FeaturedMovie> =
+        decodeWatchlist(preferences.getString(watchlistDataKey(profile), "").orEmpty())
+
+    private fun encodeWatchlist(movies: List<FeaturedMovie>): String = JSONArray().apply {
+        movies.distinctBy { it.id }.forEach { movie ->
+            put(JSONObject().apply {
+                put("id", movie.id); put("title", movie.title); put("year", movie.year)
+                put("description", movie.description); put("genres", movie.genres)
+                put("rating", movie.rating.orEmpty()); put("poster", movie.posterUrl)
+                put("background", movie.backgroundUrl); put("trailer", movie.trailerUrl.orEmpty())
+            })
+        }
+    }.toString()
+
+    private fun decodeWatchlist(payload: String): List<FeaturedMovie> {
+        val entries = runCatching { JSONArray(payload) }.getOrNull() ?: return emptyList()
+        return buildList {
+            for (index in 0 until entries.length()) {
+                val entry = entries.optJSONObject(index) ?: continue
+                val id = entry.optString("id")
+                val title = entry.optString("title").trim()
+                val poster = safeArtworkUrl(entry.optString("poster")) ?: continue
+                val background = safeArtworkUrl(entry.optString("background")) ?: poster
+                if (!id.matches(Regex("tt[0-9]{2,}")) || title.isBlank()) continue
+                val trailer = entry.optString("trailer").takeIf { raw ->
+                    val uri = runCatching { Uri.parse(raw) }.getOrNull()
+                    uri != null && uri.scheme == "https" && uri.host in setOf("youtube.com", "www.youtube.com", "youtu.be")
+                }
+                add(FeaturedMovie(
+                    id = id, title = title, year = entry.optString("year"),
+                    description = entry.optString("description"), genres = entry.optString("genres"),
+                    rating = entry.optString("rating").takeIf(String::isNotBlank),
+                    posterUrl = poster, backgroundUrl = background, trailerUrl = trailer
+                ))
+            }
+        }.distinctBy { it.id }
+    }
+
+    private fun readProfiles(): List<String> =
+        (listOf("Primary") + preferences.getString("profiles", "").orEmpty().split("\n")
+            .map(::normalizedProfileName).filter(String::isNotBlank))
+            .distinctBy { it.lowercase(Locale.ROOT) }
+
+    private fun startVoiceSearch() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            .putExtra(RecognizerIntent.EXTRA_PROMPT, "Search for a film or show")
+        try { voiceSearchLauncher.launch(intent) }
+        catch (_: ActivityNotFoundException) { Toast.makeText(this, "Voice search isn't available on this device.", Toast.LENGTH_SHORT).show() }
+        catch (_: SecurityException) { Toast.makeText(this, "This device doesn't allow Auralis TV to start voice search.", Toast.LENGTH_SHORT).show() }
+    }
 
     private fun loadApps(): List<TvApp> {
         val launcherCategories = listOf(
@@ -568,11 +699,15 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val ICON_BITMAP_SIZE = 128
         private const val RECENT_PACKAGES_KEY = "recent_packages"
+        private fun recentPackagesKey(profile: String) = "recent_packages_${profile.lowercase(Locale.ROOT)}"
+        private fun watchlistKey(profile: String) = "watchlist_${profile.lowercase(Locale.ROOT)}"
+        private fun watchlistDataKey(profile: String) = "watchlist_data_${profile.lowercase(Locale.ROOT)}"
         private const val FEATURED_MOVIES_CACHE_KEY = "featured_movies_catalog"
         private const val FEATURED_MOVIES_URL =
             "https://cinemeta-catalogs.strem.io/top/catalog/movie/top.json"
         private const val MOVIE_CATALOG_TIMEOUT_MS = 8_000
         private const val MAX_FEATURED_MOVIES = 20
+        private const val MAX_CATALOG_CHARS = 1_048_576
         private const val REQUEST_HOME_ROLE = 601
     }
 }
@@ -584,14 +719,31 @@ private fun AuralisHome(
     recentApps: List<TvApp>,
     movies: List<FeaturedMovie>,
     moviesLoading: Boolean,
+    watchlist: List<String>,
+    savedWatchlistMovies: List<FeaturedMovie>,
+    activeProfile: String,
+    profiles: List<String>,
+    voiceQuery: String?,
+    interactionRevision: State<Int>,
+    onVoiceQueryConsumed: () -> Unit,
     onLaunch: (TvApp) -> Unit,
     onOpenSettings: () -> Unit,
     onSetAsHome: () -> Unit,
     onOpenMovie: (FeaturedMovie) -> Unit,
     onSearchOnProvider: (FeaturedMovie, StreamingProvider) -> Unit,
+    onSearchPhraseOnProvider: (String, StreamingProvider) -> Unit,
+    onToggleWatchlist: (FeaturedMovie) -> Unit,
+    onSelectProfile: (String) -> Unit,
+    onAddProfile: (String) -> Unit,
+    onVoiceSearch: () -> Unit,
     onRefreshApps: () -> Unit
 ) {
     var activeDrawer by remember { mutableStateOf<LauncherDrawer?>(null) }
+    var detailMovie by remember { mutableStateOf<FeaturedMovie?>(null) }
+    var ambient by remember { mutableStateOf(false) }
+    var profileName by remember { mutableStateOf("") }
+    var searchOpen by remember { mutableStateOf(false) }
+    var searchText by remember { mutableStateOf("") }
     val drawerOpen = activeDrawer != null
     val streamingApps = remember(apps) {
         apps.mapNotNull { app ->
@@ -610,6 +762,20 @@ private fun AuralisHome(
     }
     val selectedMovie = movies.firstOrNull { it.id == selectedMovieId } ?: movies.firstOrNull()
     BackHandler(enabled = drawerOpen) { activeDrawer = null }
+    BackHandler(enabled = detailMovie != null) { detailMovie = null }
+    BackHandler(enabled = ambient) { ambient = false }
+    BackHandler(enabled = searchOpen) {
+        searchOpen = false
+        searchText = ""
+        onVoiceQueryConsumed()
+    }
+    IdleScreensaverTimer(interactionRevision, ambient) { ambient = true }
+    LaunchedEffect(voiceQuery) {
+        if (!voiceQuery.isNullOrBlank()) {
+            searchText = voiceQuery
+            searchOpen = true
+        }
+    }
 
     var currentTime by remember { mutableStateOf(LocalDateTime.now()) }
     LaunchedEffect(Unit) {
@@ -627,10 +793,19 @@ private fun AuralisHome(
     )
     val homeScrollState = rememberScrollState()
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxSize().onPreviewKeyEvent { event ->
+            if (ambient) {
+                if (event.type == KeyEventType.KeyDown) ambient = false
+                true
+            } else {
+                false
+            }
+        }
+    ) {
         // Layout responds to usable dp space (resolution + density), not the TV's inch size.
         val compact = maxHeight < 620.dp || maxWidth < 900.dp
-        val shouldScroll = maxHeight < 780.dp
+        val shouldScroll = maxHeight < 980.dp
         val horizontalPadding = when {
             maxWidth < 700.dp -> 18.dp
             maxWidth < 1000.dp -> 30.dp
@@ -699,6 +874,14 @@ private fun AuralisHome(
                         letterSpacing = 2.sp
                     )
                     Spacer(Modifier.weight(1f))
+                    FocusButton(
+                        label = activeProfile.take(10).uppercase(Locale.getDefault()),
+                        initialFocus = false,
+                        onClick = { activeDrawer = LauncherDrawer.CONTROL_CENTER }
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    FocusButton("Search", false, onClick = { searchOpen = true })
+                    Spacer(Modifier.width(14.dp))
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             timeLabel,
@@ -726,14 +909,34 @@ private fun AuralisHome(
                     compact = compact,
                     initialFocus = featuredApp != null || selectedMovie != null,
                     onLaunch = onLaunch,
-                    onOpenMovie = onOpenMovie
+                    onOpenMovie = { detailMovie = it }
                 )
+
+                val watchlistMovies = watchlist.mapNotNull { id ->
+                    movies.firstOrNull { it.id == id } ?: savedWatchlistMovies.firstOrNull { it.id == id }
+                }
+                Spacer(Modifier.height(if (compact) 12.dp else 20.dp))
+                SectionHeading("My List", "Saved on this device · ${watchlistMovies.size} titles")
+                Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
+                if (watchlistMovies.isEmpty()) {
+                    Text(
+                        if (moviesLoading) "Loading titles…" else "Save a film from its details page and it will appear here.",
+                        color = Color(0xFFADB7C6),
+                        fontSize = 13.sp
+                    )
+                } else {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        itemsIndexed(watchlistMovies, key = { _, movie -> movie.id }) { index, movie ->
+                            MovieTile(movie, compact, index == 0, onFocused = { selectedMovieId = it.id }, onClick = { detailMovie = movie })
+                        }
+                    }
+                }
 
                 if (recentApps.isNotEmpty()) {
                     Spacer(Modifier.height(if (compact) 12.dp else 20.dp))
                     SectionHeading(
                         title = "Recently opened",
-                        detail = "Pick up where you left off"
+                        detail = "Quick launch"
                     )
                     Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -802,23 +1005,8 @@ private fun AuralisHome(
                         onClick = { activeDrawer = LauncherDrawer.RECOMMENDATIONS }
                     )
                     Spacer(Modifier.width(if (compact) 5.dp else 10.dp))
-                    FocusButton(
-                        label = "Set Home",
-                        initialFocus = false,
-                        onClick = onSetAsHome
-                    )
+                    FocusButton(label = "Control", initialFocus = !appsLoading && apps.isEmpty(), onClick = { activeDrawer = LauncherDrawer.CONTROL_CENTER })
                     Spacer(Modifier.width(if (compact) 5.dp else 10.dp))
-                    FocusButton(
-                        label = "Refresh",
-                        initialFocus = false,
-                        onClick = onRefreshApps
-                    )
-                    Spacer(Modifier.width(if (compact) 5.dp else 10.dp))
-                    FocusButton(
-                        label = "Settings",
-                        initialFocus = !appsLoading && apps.isEmpty(),
-                        onClick = onOpenSettings
-                    )
                 }
             }
         }
@@ -851,16 +1039,253 @@ private fun AuralisHome(
                         onLaunch(app)
                         activeDrawer = null
                     },
-                    onOpenMovie = onOpenMovie,
+                    onOpenMovie = { detailMovie = it },
                     onSearchOnProvider = onSearchOnProvider
+                )
+                LauncherDrawer.CONTROL_CENTER -> ControlCenter(
+                    compact = compact,
+                    activeProfile = activeProfile,
+                    profiles = profiles,
+                    profileName = profileName,
+                    onProfileName = { profileName = it },
+                    onSelectProfile = { onSelectProfile(it); activeDrawer = null },
+                    onAddProfile = { onAddProfile(profileName); profileName = "" },
+                    onVoiceSearch = { searchOpen = true; onVoiceSearch(); activeDrawer = null },
+                    onSettings = { onOpenSettings(); activeDrawer = null },
+                    onRefresh = { onRefreshApps(); activeDrawer = null },
+                    onSetAsHome = { onSetAsHome(); activeDrawer = null },
+                    onScreensaver = { activeDrawer = null; ambient = true },
+                    onClose = { activeDrawer = null }
                 )
                 null -> Unit
             }
         }
+        detailMovie?.let { movie ->
+            MovieDetails(movie, movie.id in watchlist, compact, streamingApps,
+                onClose = { detailMovie = null }, onWatch = { onOpenMovie(movie) },
+                onWatchlist = { onToggleWatchlist(movie) }, onSearch = { onSearchOnProvider(movie, it) })
+        }
+        if (searchOpen) {
+            SearchOverlay(
+                query = searchText,
+                onQueryChange = { searchText = it },
+                apps = apps.filter { app -> searchText.isBlank() || app.label.contains(searchText, ignoreCase = true) },
+                movies = movies.filter { movie -> searchText.isBlank() || movie.title.contains(searchText, ignoreCase = true) || movie.genres.contains(searchText, ignoreCase = true) || movie.description.contains(searchText, ignoreCase = true) },
+                streamingApps = streamingApps,
+                compact = compact,
+                onClose = { searchOpen = false; searchText = ""; onVoiceQueryConsumed() },
+                onVoiceSearch = onVoiceSearch,
+                onLaunch = { app -> searchOpen = false; onVoiceQueryConsumed(); onLaunch(app) },
+                onOpenMovie = { movie -> searchOpen = false; onVoiceQueryConsumed(); detailMovie = movie },
+                onSearchProvider = { provider -> onSearchPhraseOnProvider(searchText, provider) }
+            )
+        }
+        if (ambient) AmbientScreen(movies.firstOrNull(), currentTime) { ambient = false }
         }
     }
 }
 
+
+@Composable
+private fun SearchOverlay(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    apps: List<TvApp>,
+    movies: List<FeaturedMovie>,
+    streamingApps: List<InstalledStreamingApp>,
+    compact: Boolean,
+    onClose: () -> Unit,
+    onVoiceSearch: () -> Unit,
+    onLaunch: (TvApp) -> Unit,
+    onOpenMovie: (FeaturedMovie) -> Unit,
+    onSearchProvider: (StreamingProvider) -> Unit
+) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { requestInitialFocus { focusRequester.requestFocus() } }
+    Box(
+        Modifier.fillMaxSize().background(Color(0xD9000000)).padding(if (compact) 8.dp else 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            Modifier.fillMaxSize().clip(RoundedCornerShape(if (compact) 22.dp else 30.dp))
+                .background(Brush.verticalGradient(listOf(Color(0xEF303845), Color(0xF20F1218))))
+                .border(1.dp, Color(0x55FFFFFF), RoundedCornerShape(if (compact) 22.dp else 30.dp))
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = if (compact) 22.dp else 40.dp, vertical = if (compact) 16.dp else 28.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 18.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Search Auralis", color = Color.White, fontSize = if (compact) 26.sp else 36.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Find a title, an app, or search an installed service", color = Color(0xFFB7C0CE), fontSize = if (compact) 11.sp else 13.sp)
+                }
+                FocusButton("Voice", false, onVoiceSearch)
+                Spacer(Modifier.width(8.dp))
+                FocusButton("Close", false, onClose)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontSize = if (compact) 18.sp else 22.sp),
+                    modifier = Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(Color(0xFF151A22))
+                        .border(1.dp, Color(0x5563B8FF), RoundedCornerShape(14.dp))
+                        .focusRequester(focusRequester).padding(horizontal = 16.dp, vertical = 13.dp),
+                    decorationBox = { inner ->
+                        Box {
+                            if (query.isBlank()) Text("Speak or type a title or app", color = Color(0xFF8491A2), fontSize = if (compact) 16.sp else 19.sp)
+                            inner()
+                        }
+                    }
+                )
+                FocusButton("Clear", false) { onQueryChange("") }
+            }
+            if (query.isBlank()) {
+                Text("Search is limited to titles in Auralis's current discovery catalogue and apps installed on this TV.", color = Color(0xFF8995A6), fontSize = 11.sp)
+            }
+            if (apps.isNotEmpty()) {
+                SectionHeading("Apps", "${apps.size} matches")
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    itemsIndexed(apps, key = { _, app -> app.packageName }) { _, app ->
+                        AppTile(app, if (compact) 142.dp else 170.dp, compact, false) { onLaunch(app) }
+                    }
+                }
+            }
+            if (movies.isNotEmpty()) {
+                SectionHeading("Titles", "${movies.size} matches")
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    itemsIndexed(movies, key = { _, movie -> movie.id }) { _, movie ->
+                        MovieTile(movie, compact, false, onFocused = {}, onClick = { onOpenMovie(movie) })
+                    }
+                }
+            }
+            if (query.isNotBlank() && streamingApps.isNotEmpty()) {
+                SectionHeading("Search services", "Search results depend on each service")
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    itemsIndexed(streamingApps, key = { _, item -> item.provider.id }) { _, item ->
+                        FocusButton(item.provider.displayName, false) { onSearchProvider(item.provider) }
+                    }
+                }
+            }
+            if (query.isNotBlank() && apps.isEmpty() && movies.isEmpty()) {
+                Text("No matching apps or titles in Auralis's current catalogue.", color = Color(0xFFB7C0CE), fontSize = 14.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ControlCenter(
+    compact: Boolean, activeProfile: String, profiles: List<String>, profileName: String,
+    onProfileName: (String) -> Unit, onSelectProfile: (String) -> Unit, onAddProfile: () -> Unit,
+    onVoiceSearch: () -> Unit, onSettings: () -> Unit, onRefresh: () -> Unit, onSetAsHome: () -> Unit,
+    onScreensaver: () -> Unit, onClose: () -> Unit
+) {
+    Box(Modifier.fillMaxSize().background(Color(0xA9000000)).padding(24.dp), contentAlignment = Alignment.Center) {
+        Column(Modifier.width(if (compact) 440.dp else 600.dp).clip(RoundedCornerShape(26.dp)).background(Color(0xF21B202A)).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Control Center", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Quick controls · Profile: $activeProfile", color = Color(0xFFB7C0CE), fontSize = 12.sp)
+                }
+                FocusButton("Close", false, onClose)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FocusButton("Voice search", true, onVoiceSearch)
+                    FocusButton("Screensaver", false, onScreensaver)
+                    FocusButton("Refresh", false, onRefresh)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FocusButton("Set as Home", false, onSetAsHome)
+                    FocusButton("Settings", false, onSettings)
+                }
+            }
+            Text("Profiles", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(profiles, key = { it }) { name -> FocusButton(name, false) { onSelectProfile(name) } }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                BasicTextField(value = profileName, onValueChange = onProfileName, singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontSize = 14.sp),
+                    modifier = Modifier.weight(1f).background(Color(0xFF303744), RoundedCornerShape(12.dp)).padding(12.dp),
+                    decorationBox = { inner -> Box { if (profileName.isBlank()) Text("New profile name", color = Color(0xFF9EA9B8)); inner() } })
+                FocusButton("Add profile", false, onAddProfile)
+            }
+            Text("Watchlist and launcher history are stored on this device per profile. Playback progress inside streaming apps isn't available to Auralis.", color = Color(0xFF9EA9B8), fontSize = 11.sp, lineHeight = 15.sp)
+        }
+    }
+}
+
+@Composable
+private fun MovieDetails(
+    movie: FeaturedMovie, watchlisted: Boolean, compact: Boolean, streamingApps: List<InstalledStreamingApp>,
+    onClose: () -> Unit, onWatch: () -> Unit, onWatchlist: () -> Unit, onSearch: (StreamingProvider) -> Unit
+) {
+    Box(Modifier.fillMaxSize().background(Color(0xCE000000)).padding(if (compact) 12.dp else 30.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxSize().clip(RoundedCornerShape(28.dp)).background(Color(0xFF11151D))) {
+            AsyncImage(model = rememberCinematicArtworkRequest(movie.backgroundUrl), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().graphicsLayer { alpha = 0.28f })
+            Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(listOf(Color(0xF2090B10), Color(0xB5090B10), Color(0xE6090B10)))))
+            Column(Modifier.fillMaxSize().padding(if (compact) 20.dp else 42.dp), verticalArrangement = Arrangement.Center) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Column(Modifier.weight(1f)) {
+                        Text("FILM DETAILS", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Text(movie.title, color = Color.White, fontSize = if (compact) 28.sp else 42.sp, fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.height(8.dp))
+                        Text(movie.metadataLine.ifBlank { "Details from the film catalogue" }, color = Color(0xFFD3DCE8), fontSize = 14.sp)
+                        Spacer(Modifier.height(16.dp))
+                        Text(movie.description.ifBlank { "Synopsis unavailable." }, color = Color(0xFFE2E7EF), fontSize = 15.sp, lineHeight = 22.sp, maxLines = 5, overflow = TextOverflow.Ellipsis)
+                    }
+                    AsyncImage(model = rememberCinematicArtworkRequest(movie.posterUrl), contentDescription = movie.title, contentScale = ContentScale.Crop,
+                        modifier = Modifier.padding(start = 18.dp).size(width = if (compact) 94.dp else 150.dp, height = if (compact) 138.dp else 220.dp).clip(RoundedCornerShape(14.dp)))
+                }
+                Spacer(Modifier.height(22.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FocusButton(if (movie.trailerUrl != null) "Play trailer" else "Open IMDb details", true, onWatch)
+                    FocusButton(if (watchlisted) "Remove from Watchlist" else "Add to Watchlist", false, onWatchlist)
+                    FocusButton("Close", false, onClose)
+                }
+                if (streamingApps.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text("Search on an installed service", color = Color(0xFFB7C0CE), fontSize = 12.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { streamingApps.take(5).forEach { FocusButton(it.provider.displayName, false) { onSearch(it.provider) } } }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text("Trailer and service searches open their app or a browser when supported. Auralis does not stream this title.", color = Color(0xFF8995A6), fontSize = 10.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AmbientScreen(movie: FeaturedMovie?, time: LocalDateTime, onExit: () -> Unit) {
+    Box(Modifier.fillMaxSize().background(Ink).clickable(onClick = onExit), contentAlignment = Alignment.Center) {
+        if (movie != null) AsyncImage(model = rememberCinematicArtworkRequest(movie.backgroundUrl), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize().graphicsLayer { alpha = 0.38f })
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0x11000000), Color(0xB8000000)))))
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(time.format(DateTimeFormatter.ofPattern("h:mm", Locale.getDefault())), color = Color.White, fontSize = 72.sp, fontWeight = FontWeight.ExtraLight)
+            Text(time.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.getDefault())).uppercase(Locale.getDefault()), color = Color(0xFFD2D9E3), fontSize = 13.sp, letterSpacing = 2.sp)
+            Spacer(Modifier.height(20.dp))
+            Text("Press OK or Back to return", color = Color(0xFFB7C0CE), fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun IdleScreensaverTimer(
+    interactionRevision: State<Int>,
+    screensaverActive: Boolean,
+    onTimeout: () -> Unit
+) {
+    LaunchedEffect(interactionRevision.value, screensaverActive) {
+        if (!screensaverActive) {
+            delay(5 * 60 * 1000L)
+            onTimeout()
+        }
+    }
+}
 
 @Composable
 private fun AppDrawer(
@@ -960,7 +1385,7 @@ private fun AppDrawer(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            if (appsLoading) "Loading your apps…" else "Try Refresh from the home screen.",
+                            if (appsLoading) "Loading your apps…" else "Open Control Center and choose Refresh.",
                             color = Color(0xFFCAD1DD),
                             fontSize = 16.sp
                         )
@@ -1486,7 +1911,7 @@ private fun TopShelf(
                     text = when {
                         movie != null -> "FEATURED FILM  •  DISCOVER"
                         app == null -> "AURALIS TV"
-                        recentlyOpened -> "PICK UP WHERE YOU LEFT OFF"
+                        recentlyOpened -> "RECENTLY OPENED APP"
                         else -> "READY WHEN YOU ARE"
                     },
                     color = Accent,
@@ -1549,7 +1974,6 @@ private fun TopShelf(
                 Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
                 Text(
                     text = when {
-                        movie?.trailerUrl != null -> "PRESS OK TO WATCH TRAILER"
                         movie != null -> "PRESS OK FOR FILM DETAILS"
                         app != null -> "PRESS OK TO OPEN"
                         else -> "A CINEMATIC HOME FOR YOUR TV"

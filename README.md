@@ -44,6 +44,10 @@ Inspired by the cinematic feel of tvOS. Not affiliated with Apple.
 - Remote-friendly navigation
 - Dedicated Apps and For You drawers
 - Detects common installed streaming apps and can search titles through their link destinations
+- Local per-profile watchlist and recently launched app history
+- Cinematic film details with artwork, metadata, trailer/details, and service search actions
+- Voice search through the device's Android speech recognizer, with matching titles, installed apps, and service-search options
+- Quick Control Center and ambient clock/artwork screensaver
 - Default Home-app selection shortcut where the device exposes it
 - Quick access to installed apps
 
@@ -57,7 +61,7 @@ The activity declares Android's Home intent, and the home screen includes a **Se
 
 ## 05 / COMPATIBILITY
 
-Designed for Android TV and Google TV. App discovery uses launchable activities, including TV and standard launcher entries. Known streaming services are detected from their installed package names. The For You drawer shows general film-discovery picks and lets users search titles via a service link or a browser; it does not guarantee catalog availability or stream content.
+Designed for Android TV and Google TV. App discovery uses launchable activities, including TV and standard launcher entries. Known streaming services are detected from their installed package names. Search covers installed apps and the current film-discovery catalogue, and can pass a query to an installed streaming service. The For You drawer shows general film-discovery picks; service searches do not guarantee catalog availability or stream content. Watchlists and recently launched apps are stored locally per Auralis profile. Watchlist entries retain their catalogue metadata locally so they remain visible when the discovery list changes. Android TV does not provide Auralis with a universal playback-progress feed, so recent apps are launcher history only and do not imply cross-app Continue Watching synchronization. Voice search requires a compatible speech-recognition app on the device.
 
 ## 06 / BUILT WITH
 
