@@ -127,7 +127,8 @@ class MainActivity : ComponentActivity() {
                                 .apply()
                         }
                     },
-                    onOpenSettings = { openSystemSettings() }
+                    onOpenSettings = { openSystemSettings() },
+                    onRefreshApps = { refreshApps() }
                 )
             }
         }
@@ -290,7 +291,8 @@ private fun AuralisHome(
     appsLoading: Boolean,
     recentApps: List<TvApp>,
     onLaunch: (TvApp) -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onRefreshApps: () -> Unit
 ) {
     var currentTime by remember { mutableStateOf(LocalDateTime.now()) }
     LaunchedEffect(Unit) {
@@ -431,6 +433,12 @@ private fun AuralisHome(
                         fontSize = 11.sp
                     )
                     Spacer(Modifier.weight(1f))
+                    FocusButton(
+                        label = "Refresh apps",
+                        initialFocus = false,
+                        onClick = onRefreshApps
+                    )
+                    Spacer(Modifier.width(12.dp))
                     FocusButton(
                         label = "System settings",
                         initialFocus = !appsLoading && apps.isEmpty(),
