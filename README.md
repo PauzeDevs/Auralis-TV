@@ -1,10 +1,6 @@
-<!--
-  AURALIS TV — PauzeDevs blue / black / cyan styling
--->
-
 <div align="center">
 
-<a href="https://github.com/PauzeDevs/Auralis-TV"><img src="https://capsule-render.vercel.app/api?type=waving&height=220&color=0:050505,45:07152D,75:007BFF,100:00D9FF&text=AURALIS%20TV&fontSize=56&fontColor=FFFFFF&fontAlignY=38&animation=fadeIn&desc=ANDROID%20TV%20%E2%80%A2%20GOOGLE%20TV&descAlignY=62&descSize=16" width="100%" /></a>
+<img src="https://capsule-render.vercel.app/api?type=waving&height=220&color=0:050505,45:07152D,75:007BFF,100:00D9FF&text=AURALIS%20TV&fontSize=56&fontColor=FFFFFF&fontAlignY=38&desc=ANDROID%20TV%20%E2%80%A2%20GOOGLE%20TV&descAlignY=62&descSize=16" width="100%" />
 
 <br/>
 
@@ -12,61 +8,57 @@
 
 <br/><br/>
 
-<a href="https://github.com/PauzeDevs/Auralis-TV"><img src="https://img.shields.io/badge/EXPLORE%20AURALIS%20TV-007BFF?style=for-the-badge&logo=github&logoColor=white" alt="Explore Auralis TV" /></a>
+<a href="https://github.com/PauzeDevs/Auralis-TV"><img src="https://img.shields.io/badge/EXPLORE_AURALIS_TV-007BFF?style=for-the-badge&logo=github&logoColor=white" alt="Explore Auralis TV" /></a>
 
 <br/><br/>
 
-<table><tr><td align="center"><a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/github/actions/workflow/status/PauzeDevs/Auralis-TV/android.yml?branch=main&style=for-the-badge&label=BUILD&color=007BFF&labelColor=050505" alt="Build status" /></a></td><td align="center"><a href="https://github.com/PauzeDevs/Auralis-TV/releases"><img src="https://img.shields.io/badge/RELEASES-VIEW-00C8FF?style=for-the-badge&labelColor=050505" alt="Releases" /></a></td><td align="center"><a href="https://github.com/PauzeDevs/Auralis-TV/blob/main/LICENSE"><img src="https://img.shields.io/github/license/PauzeDevs/Auralis-TV?style=for-the-badge&color=00C8FF&labelColor=050505" alt="License" /></a></td></tr></table>
+<table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0">
+<tr>
+<td><a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/github/actions/workflow/status/PauzeDevs/Auralis-TV/android.yml?branch=main&style=for-the-badge&label=BUILD&color=007BFF&labelColor=050505" alt="Build" /></a></td><td><a href="https://github.com/PauzeDevs/Auralis-TV/releases"><img src="https://img.shields.io/badge/RELEASES-VIEW-00C8FF?style=for-the-badge&labelColor=050505" alt="Releases" /></a></td><td><a href="https://github.com/PauzeDevs/Auralis-TV/blob/main/LICENSE"><img src="https://img.shields.io/github/license/PauzeDevs/Auralis-TV?style=for-the-badge&color=00C8FF&labelColor=050505" alt="License" /></a></td>
+</tr>
+</table>
 
 <br/><br/>
 
-<table><tr><td align="center"><a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/badge/CHECK%20BUILDS-007BFF?style=for-the-badge&logo=githubactions&logoColor=white" alt="Check builds" /></a></td><td align="center"><a href="https://github.com/PauzeDevs/Auralis-TV/issues"><img src="https://img.shields.io/badge/REPORT%20ISSUE-07152D?style=for-the-badge&logo=github&logoColor=00C8FF" alt="Report issue" /></a></td><td align="center"><a href="https://github.com/PauzeDevs/Auralis-TV/discussions"><img src="https://img.shields.io/badge/DISCUSS-07152D?style=for-the-badge&logo=github&logoColor=00C8FF" alt="Discussions" /></a></td></tr></table>
+<table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0">
+<tr>
+<td><a href="https://github.com/PauzeDevs/Auralis-TV/actions"><img src="https://img.shields.io/badge/CHECK_BUILDS-007BFF?style=for-the-badge&logo=githubactions&logoColor=white" alt="Check builds" /></a></td><td><a href="https://github.com/PauzeDevs/Auralis-TV/issues"><img src="https://img.shields.io/badge/REPORT_ISSUE-07152D?style=for-the-badge&logo=github&logoColor=00C8FF" alt="Report issue" /></a></td><td><a href="https://github.com/PauzeDevs/Auralis-TV/discussions"><img src="https://img.shields.io/badge/DISCUSS-07152D?style=for-the-badge&logo=github&logoColor=00C8FF" alt="Discussions" /></a></td>
+</tr>
+</table>
 
 </div>
 
 ---
 
-# 01 — ABOUT
+## 01 / ABOUT
 
-> **A cleaner home for the big screen.**
+**A cleaner home for the big screen.**
 
 Auralis TV is a minimal, remote-friendly launcher for Android TV and Google TV, built with **Kotlin** and **Jetpack Compose**.
 
 Inspired by the cinematic feel of tvOS. Not affiliated with Apple.
 
----
-
-# 02 — HIGHLIGHTS
+## 02 / HIGHLIGHTS
 
 - Minimal, cinematic home screen
 - Remote-friendly navigation
 - Quick access to installed apps
 
----
-
-# 03 — DOWNLOAD
+## 03 / DOWNLOAD
 
 Get the **Auralis-TV-debug** artifact from a successful [GitHub Actions build](https://github.com/PauzeDevs/Auralis-TV/actions).
 
----
-
-# 04 — COMPATIBILITY
+## 04 / COMPATIBILITY
 
 Designed for Android TV and Google TV. Default-launcher support may vary by device and firmware.
 
----
-
-# 05 — BUILT WITH
+## 05 / BUILT WITH
 
 <div align="center">
-
 <img src="https://skillicons.dev/icons?i=kotlin,androidstudio,gradle" alt="Kotlin, Android Studio, Gradle" />
-
 </div>
 
----
-
-# 06 — LICENSE
+## 06 / LICENSE
 
 [AGPL-3.0](LICENSE)
 
@@ -74,13 +66,11 @@ Designed for Android TV and Google TV. Default-launcher support may vary by devi
 
 <div align="center">
 
-### **MADE FOR THE BIG SCREEN.**
+**MADE FOR THE BIG SCREEN.**
 
 `DESIGN → BUILD → REFINE → SHIP`
 
 <sub>Auralis TV · A PauzeDevs project</sub>
-
-<br/><br/>
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:00D9FF,50:007BFF,100:050505&height=110&section=footer" width="100%" />
 
