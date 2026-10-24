@@ -1,35 +1,38 @@
 # Auralis TV
 
-A personal Android TV launcher concept for Google TV devices, built with Kotlin and Jetpack Compose.
+A cinematic, Apple TV-inspired launcher concept for Android TV and Google TV devices, built with Kotlin and Jetpack Compose.
 
-> This is an early development build. It is not an Apple tvOS port, and default-launcher behavior depends on the TV manufacturer's firmware.
+Auralis is an independent Android launcher, not an Apple tvOS port. It uses Android's installed app list and does not access streaming-service accounts or content histories.
 
-## Current features
+## Features
 
-- Dark, cinematic home screen with Auralis branding
-- Finds installed apps with launch intents and displays them as remote-friendly tiles
-- Launches apps using Android's package manager
-- Opens Android Settings
-- Leanback launcher entry and Home intent filter
-- GitHub Actions workflow that builds and uploads a debug APK
+- Dark, cinematic home screen with Auralis branding and a live clock/date.
+- Real icons and names for installed apps that can be launched.
+- A **Recently opened** row stored locally on the device.
+- Animated focus scaling and clear focus outlines for TV remote/D-pad navigation.
+- System Settings shortcut.
+- Android TV Leanback launcher entry and Home intent filter.
+- Layout spacing that adapts to shorter TV viewports.
+- GitHub Actions build that creates and uploads a debug APK.
 
-## Build APK
+## Build and download the APK
 
-1. Open the **Actions** tab in this repository.
-2. Select **Android APK**.
-3. Choose **Run workflow** (or push a commit to `main`).
-4. Open the completed workflow run.
-5. Download the **Auralis-TV-debug** artifact. It contains `app-debug.apk`.
+1. Open the [Actions tab](https://github.com/PauzeDevs/Auralis-TV/actions).
+2. Select **Android APK** and open the latest successful run.
+3. Download the **Auralis-TV-debug** artifact.
+4. Extract it to get `app-debug.apk`.
+
+The workflow runs on pushes to `main`, pull requests, and manual dispatches.
 
 ## Install on Google TV
 
-Sideload the APK using a trusted file transfer method or Android Debug Bridge (ADB). On the TV, you may need to allow installation from the app used to open the APK.
+Sideload `app-debug.apk` using a trusted transfer method or Android Debug Bridge (ADB). The TV may ask you to allow installation from the app used to open the APK.
 
-Auralis TV requests package visibility to find installed apps. It does not request your Google password, read account credentials, or sign in to streaming services.
+Auralis requests package visibility so it can find installed apps. The Recently opened list is stored locally using app package names. Auralis does not request Google passwords, read account credentials, or sign in to streaming services.
 
-## Default Home app
+## Choosing Auralis as the Home app
 
-The app includes an Android Home intent filter. Whether Google TV permits selecting it as the default Home app is firmware-dependent. Test the app as a regular installed launcher first. Avoid disabling the stock launcher unless you have confirmed a reliable way to restore it.
+The app advertises Android's Home intent. Whether the TV allows it to be selected as the default launcher depends on the manufacturer firmware and Google TV version. First test Auralis as a regular installed app. Do not disable the stock launcher unless you have verified a reliable recovery path.
 
 ## Development
 
@@ -37,7 +40,7 @@ The app includes an Android Home intent filter. Whether Google TV permits select
 - Kotlin: 2.0.21
 - JDK: 17
 - Minimum Android version: 8.0 (API 26)
-- Target SDK: 28 (initial sideload-focused prototype)
+- Compile SDK: 35
 
 ## License
 
