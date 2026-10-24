@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -188,6 +187,8 @@ private fun AuralisHome(
         val verticalPadding = if (compact) 16.dp else 26.dp
         val heroHeight = if (compact) 142.dp else 190.dp
         val tileWidth = if (compact) 116.dp else 138.dp
+        val featuredApp = recentApps.firstOrNull() ?: apps.firstOrNull()
+        val featuredIsRecent = recentApps.isNotEmpty()
 
         Box(
             modifier = Modifier
@@ -240,7 +241,14 @@ private fun AuralisHome(
                 }
 
                 Spacer(Modifier.height(if (compact) 12.dp else 20.dp))
-                HeroCard(height = heroHeight, compact = compact)
+                TopShelf(
+                    app = featuredApp,
+                    recentlyOpened = featuredIsRecent,
+                    height = heroHeight,
+                    compact = compact,
+                    initialFocus = featuredApp != null,
+                    onLaunch = onLaunch
+                )
 
                 if (recentApps.isNotEmpty()) {
                     Spacer(Modifier.height(if (compact) 12.dp else 20.dp))
@@ -255,7 +263,7 @@ private fun AuralisHome(
                                 app = app,
                                 width = tileWidth,
                                 compact = compact,
-                                initialFocus = index == 0,
+                                initialFocus = featuredApp == null && index == 0,
                                 onClick = { onLaunch(app) }
                             )
                         }
@@ -282,7 +290,7 @@ private fun AuralisHome(
                                 app = app,
                                 width = tileWidth,
                                 compact = compact,
-                                initialFocus = recentApps.isEmpty() && index == 0,
+                                initialFocus = featuredApp == null && index == 0,
                                 onClick = { onLaunch(app) }
                             )
                         }
@@ -309,74 +317,146 @@ private fun AuralisHome(
 }
 
 @Composable
-private fun HeroCard(height: Dp, compact: Boolean) {
+private fun TopShelf(
+    app: TvApp?,
+    recentlyOpened: Boolean,
+    height: Dp,
+    compact: Boolean,
+    initialFocus: Boolean,
+    onLaunch: (TvApp) -> Unit
+) {
+    var focused by remember(app?.packageName) { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (focused) 1.012f else 1f,
+        label = "topShelfScale"
+    )
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(initialFocus, app?.packageName) {
+        if (initialFocus) {
+            delay(180)
+            runCatching { focusRequester.requestFocus() }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(height)
+            .scale(scale)
             .clip(RoundedCornerShape(26.dp))
             .background(
                 Brush.horizontalGradient(
                     listOf(
-                        Color(0xFF39393D),
-                        Color(0xFF202023),
-                        Color(0xFF111113)
+                        Color(0xFF252D3A),
+                        Color(0xFF171B22),
+                        Color(0xFF101114)
                     )
                 )
             )
-            .border(1.dp, Color(0xFF3A3A3E), RoundedCornerShape(26.dp))
-            .padding(horizontal = if (compact) 22.dp else 34.dp, vertical = 20.dp)
+            .border(
+                width = if (focused) 2.dp else 1.dp,
+                color = if (focused) Accent else Color(0xFF343943),
+                shape = RoundedCornerShape(26.dp)
+            )
+            .then(
+                if (app != null) {
+                    Modifier
+                        .focusRequester(focusRequester)
+                        .onFocusChanged { focused = it.isFocused }
+                        .focusable()
+                        .clickable { onLaunch(app) }
+                } else {
+                    Modifier
+                }
+            )
+            .padding(
+                horizontal = if (compact) 22.dp else 34.dp,
+                vertical = if (compact) 14.dp else 20.dp
+            )
     ) {
-        Column(
-            modifier = Modifier.align(Alignment.CenterStart)
-                .fillMaxWidth(0.76f)
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                "MADE FOR THE BIG SCREEN",
-                color = Accent,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.8.sp
-            )
-            Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
-            Text(
-                "Your next\nfavorite starts here.",
-                color = Color.White,
-                fontSize = if (compact) 28.sp else 36.sp,
-                lineHeight = if (compact) 32.sp else 40.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            if (!compact) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "All your apps. One calm, cinematic home.",
-                    color = Color(0xFFD0D8E4),
-                    fontSize = 14.sp
-                )
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .size(if (compact) 84.dp else 126.dp)
-                .clip(CircleShape)
-                .background(Color(0x20FFFFFF)),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
+            Column(
                 modifier = Modifier
-                    .size(if (compact) 60.dp else 90.dp)
-                    .clip(CircleShape)
-                    .background(Color(0x2EFFFFFF)),
-                contentAlignment = Alignment.Center
+                    .weight(1f)
+                    .padding(end = if (compact) 12.dp else 20.dp),
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    "A",
+                    text = when {
+                        app == null -> "AURALIS TV"
+                        recentlyOpened -> "PICK UP WHERE YOU LEFT OFF"
+                        else -> "READY WHEN YOU ARE"
+                    },
                     color = Accent,
-                    fontSize = if (compact) 44.sp else 62.sp,
-                    fontWeight = FontWeight.Light
+                    fontSize = if (compact) 9.sp else 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp,
+                    maxLines = 1
                 )
+                Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
+                Text(
+                    text = app?.label ?: "Your TV, your apps.",
+                    color = Color.White,
+                    fontSize = if (compact) 25.sp else 35.sp,
+                    lineHeight = if (compact) 29.sp else 39.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
+                )
+                if (!compact) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = if (app == null) {
+                            "Launchable apps will appear here."
+                        } else if (recentlyOpened) {
+                            "Recently opened • Ready to launch"
+                        } else {
+                            "Open directly from your home screen."
+                        },
+                        color = Color(0xFFB7C0CE),
+                        fontSize = 13.sp,
+                        maxLines = 1
+                    )
+                }
+                Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
+                Text(
+                    text = if (app == null) "NO LAUNCHABLE APPS FOUND" else "PRESS OK TO OPEN",
+                    color = if (focused) Color.White else Color(0xFFD5DFEE),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.2.sp
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(if (compact) 78.dp else 124.dp)
+                    .clip(RoundedCornerShape(if (compact) 18.dp else 25.dp))
+                    .background(Color(0xFF252B35))
+                    .border(
+                        1.dp,
+                        Color(0x3FFFFFFF),
+                        RoundedCornerShape(if (compact) 18.dp else 25.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (app != null) {
+                    Image(
+                        bitmap = app.icon.asImageBitmap(),
+                        contentDescription = app.label,
+                        modifier = Modifier.size(if (compact) 58.dp else 94.dp)
+                    )
+                } else {
+                    Text(
+                        "A",
+                        color = Accent,
+                        fontSize = if (compact) 40.sp else 64.sp,
+                        fontWeight = FontWeight.Light
+                    )
+                }
             }
         }
     }
