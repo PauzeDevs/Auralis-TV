@@ -62,9 +62,9 @@ private data class TvApp(
     val icon: Bitmap
 )
 
-private val Lime = Color(0xFFB7F36B)
-private val Ink = Color(0xFF080B10)
-private val TileSurface = Color(0xFF151C27)
+private val Accent = Color(0xFF63B8FF)
+private val Ink = Color(0xFF050506)
+private val TileSurface = Color(0xFF171719)
 
 class MainActivity : ComponentActivity() {
     private var installedApps by mutableStateOf<List<TvApp>>(emptyList())
@@ -193,8 +193,8 @@ private fun AuralisHome(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.linearGradient(
-                        listOf(Color(0xFF172740), Ink, Color(0xFF090D13))
+                    Brush.verticalGradient(
+                        listOf(Color(0xFF171719), Color(0xFF09090A), Ink)
                     )
                 )
                 .padding(
@@ -217,7 +217,7 @@ private fun AuralisHome(
                     Spacer(Modifier.width(12.dp))
                     Text(
                         "TV",
-                        color = Lime,
+                        color = Accent,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 2.sp
@@ -318,13 +318,13 @@ private fun HeroCard(height: Dp, compact: Boolean) {
             .background(
                 Brush.horizontalGradient(
                     listOf(
-                        Color(0xFF293F5C),
-                        Color(0xFF1A2A3F),
-                        Color(0xFF101720)
+                        Color(0xFF39393D),
+                        Color(0xFF202023),
+                        Color(0xFF111113)
                     )
                 )
             )
-            .border(1.dp, Color(0xFF34465D), RoundedCornerShape(26.dp))
+            .border(1.dp, Color(0xFF3A3A3E), RoundedCornerShape(26.dp))
             .padding(horizontal = if (compact) 22.dp else 34.dp, vertical = 20.dp)
     ) {
         Column(
@@ -361,14 +361,14 @@ private fun HeroCard(height: Dp, compact: Boolean) {
                 .align(Alignment.CenterEnd)
                 .size(if (compact) 84.dp else 126.dp)
                 .clip(CircleShape)
-                .background(Color(0x20B7F36B)),
+                .background(Color(0x20FFFFFF)),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
                     .size(if (compact) 60.dp else 90.dp)
                     .clip(CircleShape)
-                    .background(Color(0x2EB7F36B)),
+                    .background(Color(0x2EFFFFFF)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -427,10 +427,10 @@ private fun AppTile(
             .width(width)
             .scale(scale)
             .clip(RoundedCornerShape(18.dp))
-            .background(if (focused) Color(0xFF26374A) else TileSurface)
+            .background(if (focused) Color(0xFF2B2B2F) else TileSurface)
             .border(
                 width = if (focused) 2.dp else 1.dp,
-                color = if (focused) Lime else Color(0xFF293442),
+                color = if (focused) Lime else Color(0xFF303034),
                 shape = RoundedCornerShape(18.dp)
             )
             .focusRequester(focusRequester)
@@ -488,10 +488,10 @@ private fun FocusButton(
         modifier = Modifier
             .scale(scale)
             .clip(RoundedCornerShape(22.dp))
-            .background(if (focused) Lime else Color(0xFF202936))
+            .background(if (focused) Color(0xFFF4F4F5) else Color(0xFF202023))
             .border(
                 1.dp,
-                if (focused) Lime else Color(0xFF3A4656),
+                if (focused) Color.White else Color(0xFF343438),
                 RoundedCornerShape(22.dp)
             )
             .focusRequester(focusRequester)
@@ -502,7 +502,7 @@ private fun FocusButton(
     ) {
         Text(
             label,
-            color = if (focused) Color(0xFF10150A) else Color.White,
+            color = if (focused) Color(0xFF101012) else Color.White,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
