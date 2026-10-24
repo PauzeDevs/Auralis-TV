@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#07090d" />
+    <meta name="description" content="Auralis TV is a cinematic, remote-first home screen for Android TV. Bring installed apps, film discovery, and a local per-profile watchlist into one calm place." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Auralis TV — A more thoughtful home for your TV" />
+    <meta property="og:description" content="A cinematic, remote-first launcher for Android TV and Google TV." />
+    <meta property="og:image" content="assets/auralis-hero.png" />
+    <title>Auralis TV — A more thoughtful home for your TV</title>
+    <link rel="icon" href="assets/auralis-mark.svg" type="image/svg+xml" />
+    <link rel="preload" as="image" href="assets/auralis-hero.png" fetchpriority="high" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header" data-header>
+      <a class="brand" href="#top" aria-label="Auralis TV home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 34 34" fill="none"><path d="M17 2.8 31.2 17 17 31.2 2.8 17 17 2.8Z" stroke="currentColor" stroke-width="1.6"/><path d="M17 9.5 24.5 17 17 24.5 9.5 17 17 9.5Z" fill="currentColor"/></svg>
+        </span>
+        <span class="brand-name">auralis<span>TV</span></span>
+      </a>
+
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Open navigation" data-menu-toggle>
+        <span></span><span></span>
+      </button>
+
+      <nav class="primary-nav" id="primary-nav" aria-label="Main navigation" data-nav>
+        <a href="#experience">Experience</a>
+        <a href="#features">Features</a>
+        <a href="#details">The details</a>
+      </nav>
+
+      <a class="button button-small button-glass header-cta" href="https://github.com/PauzeDevs/Auralis-TV" target="_blank" rel="noreferrer">
+        Explore the project <span class="arrow" aria-hidden="true">↗</span>
+      </a>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="top" aria-labelledby="hero-title">
+        <img class="hero-art" src="assets/auralis-hero.png" alt="" fetchpriority="high" />
+        <div class="hero-vignette" aria-hidden="true"></div>
+        <div class="hero-grain" aria-hidden="true"></div>
+
+        <div class="hero-copy" data-reveal>
+          <p class="eyebrow"><span class="eyebrow-line"></span> A home screen for Android TV</p>
+          <h1 id="hero-title">Your TV deserves<br />a better <em>first screen.</em></h1>
+          <p class="hero-description">Auralis brings your installed apps, film discovery, and on-device favorites into one cinematic home — made for the remote you already hold.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#experience">Explore Auralis <span class="arrow" aria-hidden="true">↓</span></a>
+            <a class="text-link" href="https://github.com/PauzeDevs/Auralis-TV" target="_blank" rel="noreferrer">See the project <span class="arrow" aria-hidden="true">↗</span></a>
+          </div>
+          <p class="hero-footnote">For Android TV and Google TV <span aria-hidden="true">·</span> Independent project, not affiliated with Apple</p>
+        </div>
+
+        <div class="hero-product" data-reveal data-delay="130" aria-label="Illustrative preview of the Auralis TV interface">
+          <div class="device-frame">
+            <div class="device-screen">
+              <div class="screen-art"></div>
+              <div class="screen-shade"></div>
+              <div class="screen-ui">
+                <div class="screen-topbar">
+                  <div class="screen-brand"><span class="screen-diamond">◆</span> auralis <b>TV</b></div>
+                  <div class="screen-status"><span class="status-dot"></span><span>PRIMARY</span><span class="screen-time">9:41</span></div>
+                </div>
+
+                <div class="preview-pane is-active" data-pane="home">
+                  <div class="screen-copy">
+                    <p class="screen-kicker">FEATURED FILM <span>•</span> DISCOVER</p>
+                    <h2>A night worth<br />staying in.</h2>
+                    <p class="screen-meta">A new world is only a few clicks away.</p>
+                    <span class="screen-action">Explore film details <b>→</b></span>
+                  </div>
+                  <div class="screen-shelf">
+                    <div class="mini-cover cover-one"><span>DISCOVER</span></div>
+                    <div class="mini-cover cover-two"><span>YOUR LIST</span></div>
+                    <div class="mini-cover cover-three"><span>YOUR APPS</span></div>
+                    <div class="mini-cover cover-four"><span>FOR YOU</span></div>
+                  </div>
+                </div>
+
+                <div class="preview-pane preview-list" data-pane="list" aria-hidden="true">
+                  <p class="screen-kicker">SAVED ON THIS DEVICE</p>
+                  <h2>My List<span class="list-count">04</span></h2>
+                  <p class="screen-meta">A place for the films you want to find later.</p>
+                  <div class="list-covers"><i></i><i></i><i></i><i></i></div>
+                  <span class="screen-caption">Stored locally, per Auralis profile</span>
+                </div>
+
+                <div class="preview-pane preview-control" data-pane="control" aria-hidden="true">
+                  <p class="screen-kicker">QUICK CONTROLS</p>
+                  <h2>Control Center</h2>
+                  <p class="screen-meta">Small things, close at hand.</p>
+                  <div class="control-pills"><span>Profiles</span><span>Voice search</span><span>Screensaver</span><span>Refresh</span></div>
+                  <span class="screen-caption">Auralis TV · Android launcher</span>
+                </div>
+
+                <div class="screen-bottom">
+                  <div class="preview-tabs" role="group" aria-label="Preview Auralis screens">
+                    <button class="preview-tab is-active" type="button" data-preview-tab="home" aria-pressed="true">Home</button>
+                    <button class="preview-tab" type="button" data-preview-tab="list" aria-pressed="false">My List</button>
+                    <button class="preview-tab" type="button" data-preview-tab="control" aria-pressed="false">Control</button>
+                  </div>
+                  <div class="remote-hint"><span class="remote-ring">⌖</span> MADE FOR YOUR REMOTE</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="preview-note">Illustrative interface preview. Apps and catalogue titles vary by device.</p>
+        </div>
+
+        <a class="scroll-cue" href="#experience"><span></span> Scroll to explore</a>
+      </section>
+
+      <section class="intro section-pad" id="experience" aria-labelledby="intro-title">
+        <div class="section-shell intro-shell">
+          <p class="eyebrow eyebrow-dark" data-reveal><span class="eyebrow-line"></span> A more considered starting point</p>
+          <h2 class="display-title" id="intro-title" data-reveal data-delay="70">Less searching for the remote.<br /><span>More settling in.</span></h2>
+          <p class="intro-copy" data-reveal data-delay="130">The home screen is the first thing you see. Auralis makes it feel like it belongs to you: familiar apps up front, useful film details close by, and a calm interface that stays out of the way.</p>
+          <div class="intro-signals" data-reveal data-delay="190">
+            <div><span class="signal-icon">↕</span><strong>Remote first</strong><small>Designed for D-pad navigation</small></div>
+            <div><span class="signal-icon">◈</span><strong>Your installed apps</strong><small>Found on this Android TV</small></div>
+            <div><span class="signal-icon">⌂</span><strong>Local by profile</strong><small>Watchlist and app history</small></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="chapter chapter-discovery" aria-labelledby="discovery-title">
+        <div class="chapter-copy" data-reveal>
+          <p class="eyebrow"><span class="eyebrow-line"></span> Find your next film</p>
+          <h2 class="display-title" id="discovery-title">A little more<br /><em>context</em> before play.</h2>
+          <p>Browse a small film-discovery shelf, open a cinematic title page, and see the details Auralis can find: artwork, synopsis, year, genres, rating, and an available trailer or IMDb page.</p>
+          <p>When a supported streaming app is installed, Auralis can send a title search to that service. Whether it carries the title depends on the service, your region, and your subscription.</p>
+          <a class="text-link" href="#details">See exactly what Auralis does <span class="arrow" aria-hidden="true">↓</span></a>
+        </div>
+        <div class="chapter-art discovery-art" aria-hidden="true" data-reveal data-delay="130">
+          <img src="assets/auralis-hero.png" alt="" loading="lazy" />
+          <div class="art-gradient"></div>
+          <div class="art-glass-card"><span class="art-kicker">A FILM TO DISCOVER</span><span class="art-headline">Let the<br />evening unfold.</span><span class="art-meta">Details, trailer, or search options</span></div>
+          <div class="art-index">01 <span>/</span> 04</div>
+        </div>
+      </section>
+
+      <section class="features section-pad" id="features" aria-labelledby="features-title">
+        <div class="section-shell">
+          <div class="feature-heading" data-reveal>
+            <div><p class="eyebrow eyebrow-dark"><span class="eyebrow-line"></span> Thoughtful by design</p><h2 class="display-title" id="features-title">The small things<br /><span>add up.</span></h2></div>
+            <p class="feature-heading-copy">Auralis is a launcher, not another streaming service. It helps you get to what’s already on your TV, then adds a few useful ways to browse and keep track.</p>
+          </div>
+
+          <div class="feature-grid">
+            <article class="feature-card feature-home" data-reveal>
+              <div class="feature-visual app-visual" aria-hidden="true">
+                <span class="app-tile app-tile-one">A</span><span class="app-tile app-tile-two">▶</span><span class="app-tile app-tile-three">◉</span><span class="app-tile app-tile-four">✦</span>
+                <span class="visual-glow"></span>
+              </div>
+              <div class="feature-card-copy"><span class="feature-number">01 / HOME</span><h3>Your apps, ready when you are.</h3><p>Auralis discovers launchable apps on your TV, puts them in one place, and keeps a short list of recently opened apps for quick launch.</p></div>
+            </article>
+
+            <article class="feature-card feature-search" data-reveal data-delay="70">
+              <div class="feature-visual search-visual" aria-hidden="true">
+                <div class="search-orbit orbit-one"></div><div class="search-orbit orbit-two"></div>
+                <div class="search-center"><span>⌕</span></div>
+                <span class="search-word word-one">The name of a film…</span><span class="search-word word-two">A title. An app. A service.</span>
+              </div>
+              <div class="feature-card-copy"><span class="feature-number">02 / SEARCH</span><h3>Find it by voice or text.</h3><p>Voice search uses the Android speech recognizer on your device. Results match installed app names and Auralis’s current discovery catalogue; service links pass your query along.</p></div>
+            </article>
+
+            <article class="feature-card feature-list" data-reveal>
+              <div class="feature-visual list-visual" aria-hidden="true">
+                <div class="list-stack"><span class="stack-poster poster-a"></span><span class="stack-poster poster-b"></span><span class="stack-poster poster-c"></span><span class="stack-poster poster-d"></span></div>
+                <div class="list-label"><b>My List</b><small>Saved on this device</small><span class="list-done">✓</span></div>
+              </div>
+              <div class="feature-card-copy"><span class="feature-number">03 / YOUR LIST</span><h3>Keep a list of things to find.</h3><p>Save film picks to a watchlist stored on this device. Each Auralis profile has its own list and launcher history, with no Auralis account required.</p></div>
+            </article>
+
+            <article class="feature-card feature-control" data-reveal data-delay="70">
+              <div class="feature-visual control-visual" aria-hidden="true">
+                <div class="control-card control-profile"><span class="control-glyph">◉</span><b>Profiles</b><small>PRIMARY</small></div>
+                <div class="control-card control-saver"><span class="control-glyph">☾</span><b>Ambient</b><small>TIME &amp; ART</small></div>
+                <div class="control-card control-settings"><span class="control-glyph">⌘</span><b>Quick settings</b><small>REFRESH · HOME</small></div>
+              </div>
+              <div class="feature-card-copy"><span class="feature-number">04 / CONTROL</span><h3>Handy controls, one click away.</h3><p>Switch local profiles, refresh app discovery, open device settings, request default Home selection where supported, or bring up the ambient clock and artwork screen.</p></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="chapter chapter-ambient" aria-labelledby="ambient-title">
+        <div class="ambient-art" aria-hidden="true"><img src="assets/auralis-hero.png" alt="" loading="lazy" /><div class="ambient-glow"></div><div class="ambient-clock"><strong>9:41</strong><span>AMBIENT · CLOCK &amp; ART</span></div></div>
+        <div class="chapter-copy" data-reveal>
+          <p class="eyebrow"><span class="eyebrow-line"></span> Leave the room in a softer light</p>
+          <h2 class="display-title" id="ambient-title">A quieter screen<br />when you <em>step away.</em></h2>
+          <p>After a stretch without interaction, the ambient screen can show the time over cinematic artwork. You can also start it from Control Center and return with the remote.</p>
+          <p class="small-note">Artwork availability depends on the device’s network connection and image cache.</p>
+        </div>
+      </section>
+
+      <section class="truth section-pad" id="details" aria-labelledby="truth-title">
+        <div class="section-shell truth-shell">
+          <div class="truth-heading" data-reveal><p class="eyebrow eyebrow-dark"><span class="eyebrow-line"></span> Clear about what it is</p><h2 class="display-title" id="truth-title">A better front door.<br /><span>Your apps stay in charge.</span></h2></div>
+          <div class="truth-body" data-reveal data-delay="100">
+            <p class="truth-lead">Auralis does not stream films or TV. It helps you discover a title, then opens a trailer, IMDb details, or a search on an installed service when Android can handle that link.</p>
+            <div class="truth-rule"></div>
+            <div class="truth-points">
+              <div><span class="truth-mark">01</span><p><strong>No universal playback progress.</strong> Android does not give Auralis a shared Continue Watching feed from other apps. “Recently opened” is launcher history, not viewing progress.</p></div>
+              <div><span class="truth-mark">02</span><p><strong>Your list is local.</strong> My List saves catalogue picks on this device, per Auralis profile. It does not sync across TVs or streaming accounts.</p></div>
+              <div><span class="truth-mark">03</span><p><strong>Discovery is a starting point.</strong> The current film shelf is a limited external catalogue. A service search does not guarantee availability, subscription access, or playback.</p></div>
+              <div><span class="truth-mark">04</span><p><strong>Your TV makes the final call.</strong> Default launcher selection depends on Android version and manufacturer settings. Auralis can request the Home role where the device supports it.</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="closing-cta" aria-labelledby="closing-title">
+        <img src="assets/auralis-hero.png" alt="" loading="lazy" />
+        <div class="closing-shade"></div>
+        <div class="closing-content" data-reveal>
+          <p class="eyebrow"><span class="eyebrow-line"></span> Auralis TV · Android TV &amp; Google TV</p>
+          <h2 id="closing-title">Make the first<br />screen <em>feel like yours.</em></h2>
+          <p>Explore the project, see how it’s built, and follow the latest Android TV launcher updates.</p>
+          <a class="button button-primary" href="https://github.com/PauzeDevs/Auralis-TV" target="_blank" rel="noreferrer">Visit Auralis on GitHub <span class="arrow" aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-top">
+        <a class="brand footer-brand" href="#top" aria-label="Auralis TV home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 34 34" fill="none"><path d="M17 2.8 31.2 17 17 31.2 2.8 17 17 2.8Z" stroke="currentColor" stroke-width="1.6"/><path d="M17 9.5 24.5 17 17 24.5 9.5 17 17 9.5Z" fill="currentColor"/></svg></span><span class="brand-name">auralis<span>TV</span></span></a>
+        <p>A calm, cinematic home screen for the TV you already own.</p>
+        <a class="footer-github" href="https://github.com/PauzeDevs/Auralis-TV" target="_blank" rel="noreferrer">Open source on GitHub <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="footer-bottom"><span>© <span data-year>2026</span> Auralis TV · A PauzeDevs project</span><span>Android is a trademark of Google LLC. Auralis is independent and not affiliated with Apple.</span><a href="#top">Back to top ↑</a></div>
+    </footer>
+  </body>
+</html>
