@@ -1,6 +1,5 @@
 <!--
-  AURALIS TV
-  Blue / black cinematic project README
+  AURALIS TV — PauzeDevs blue / black / cyan styling
 -->
 
 <div align="center">
