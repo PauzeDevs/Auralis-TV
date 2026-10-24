@@ -34,7 +34,7 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build debug APK
-        run: gradle --no-daemon clean assembleDebug
+        run: gradle --no-daemon clean testDebugUnitTest lintDebug assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
