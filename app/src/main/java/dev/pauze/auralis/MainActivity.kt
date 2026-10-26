@@ -2071,7 +2071,7 @@ private fun MovieTile(
     }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.055f else 1f,
-        animationSpec = tween(durationMillis = if (focused) 180 else 140),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "movieTileScale"
     )
     val shape = RoundedCornerShape(if (compact) 13.dp else 16.dp)
@@ -2156,7 +2156,8 @@ private fun AppTile(
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (focused) 1.06f else 1f,
+        targetValue = if (focused) 1.075f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "appTileScale"
     )
     val focusRequester = remember { FocusRequester() }
@@ -2217,7 +2218,8 @@ private fun FocusButton(
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (focused) 1.04f else 1f,
+        targetValue = if (focused) 1.06f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "settingsScale"
     )
     val focusRequester = remember { FocusRequester() }
