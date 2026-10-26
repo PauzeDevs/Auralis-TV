@@ -18,6 +18,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -1650,7 +1652,7 @@ private fun StreamingServiceTile(
     }
     val scale by animateFloatAsState(
         targetValue = if (focused || selected) 1.035f else 1f,
-        animationSpec = tween(durationMillis = 160),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "streamingServiceScale"
     )
     val shape = RoundedCornerShape(if (compact) 14.dp else 18.dp)
@@ -1716,7 +1718,7 @@ private fun DrawerAppCard(
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.055f else 1f,
-        animationSpec = tween(durationMillis = if (focused) 170 else 140),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "drawerCardScale"
     )
     val shape = RoundedCornerShape(22.dp)
@@ -1812,7 +1814,7 @@ private fun TopShelf(
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.012f else 1f,
-        animationSpec = tween(durationMillis = 220),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow),
         label = "topShelfScale"
     )
     val focusRequester = remember { FocusRequester() }
