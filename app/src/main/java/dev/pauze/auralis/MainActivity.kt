@@ -1819,6 +1819,11 @@ private fun TopShelf(
     )
     val focusRequester = remember { FocusRequester() }
     val canActivate = movie != null || app != null
+    val heroActionLabel = when {
+        movie != null -> "PLAY TRAILER"
+        app != null -> "OPEN APP"
+        else -> null
+    }
 
     LaunchedEffect(initialFocus) {
         if (initialFocus && canActivate) {
@@ -1993,19 +1998,52 @@ private fun TopShelf(
                 }
 
                 Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
-                Text(
-                    text = when {
-                        movie != null -> "PRESS OK FOR FILM DETAILS"
-                        app != null -> "PRESS OK TO OPEN"
-                        else -> "A CINEMATIC HOME FOR YOUR TV"
-                    },
-                    color = if (focused) Color.White else Color(0xFFD5DFEE),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.2.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                if (heroActionLabel != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(if (focused) Color.White else Color(0xFF26313F))
+                                .border(
+                                    1.dp,
+                                    if (focused) Color.White else Color(0xFF526174),
+                                    RoundedCornerShape(50)
+                                )
+                                .padding(horizontal = if (compact) 10.dp else 14.dp, vertical = if (compact) 5.dp else 7.dp)
+                        ) {
+                            Text(
+                                heroActionLabel,
+                                color = if (focused) Color(0xFF11151B) else Color.White,
+                                fontSize = if (compact) 9.sp else 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp,
+                                maxLines = 1
+                            )
+                        }
+                        Text(
+                            text = if (movie != null) "FILM DETAILS" else "LAUNCH DIRECTLY",
+                            color = Color(0xFFD5DFEE),
+                            fontSize = if (compact) 9.sp else 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 1.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "A CINEMATIC HOME FOR YOUR TV",
+                        color = Color(0xFFD5DFEE),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
             if (movie?.posterUrl?.isNotBlank() == true) {
