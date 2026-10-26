@@ -1717,7 +1717,7 @@ private fun DrawerAppCard(
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (focused) 1.055f else 1f,
+        targetValue = if (focused) 1.035f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "drawerCardScale"
     )
@@ -2133,7 +2133,7 @@ private fun MovieTile(
                 .clip(shape)
                 .background(Color(0xFF20242B))
                 .border(
-                    width = if (focused) 2.5.dp else 1.dp,
+                    width = if (focused) 2.dp else 1.dp,
                     brush = if (focused) Brush.linearGradient(listOf(Color.White, Color(0xFF8CCBFF), Color.White))
                         else Brush.linearGradient(listOf(Color(0x66FFFFFF), Color(0x22FFFFFF))),
                     shape = shape
@@ -2195,7 +2195,7 @@ private fun AppTile(
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (focused) 1.075f else 1f,
+        targetValue = if (focused) 1.045f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "appTileScale"
     )
@@ -2214,7 +2214,7 @@ private fun AppTile(
             .clip(RoundedCornerShape(18.dp))
             .background(
                 Brush.verticalGradient(
-                    if (focused) listOf(Color(0xFFF0F6FF), Color(0xFFD5E8FF), Color(0xFF8FAED0))
+                    if (focused) listOf(Color(0xFFE8F1FA), Color(0xFFD9E5F2), Color(0xFFC5D5E7))
                     else listOf(Color(0xFF292D35), Color(0xFF191B20))
                 )
             )
@@ -2277,7 +2277,7 @@ private fun FocusButton(
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (focused) 1.06f else 1f,
+        targetValue = if (focused) 1.035f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "settingsScale"
     )
@@ -2292,12 +2292,12 @@ private fun FocusButton(
     Box(
         modifier = Modifier
             .scale(scale)
-            .clip(RoundedCornerShape(22.dp))
-            .background(if (focused) Color(0xFFF4F4F5) else Color(0xFF202023))
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (focused) Color(0xFFE8F1FA) else Color(0xFF202023))
             .border(
                 1.dp,
                 if (focused) Color.White else Color(0xFF343438),
-                RoundedCornerShape(22.dp)
+                RoundedCornerShape(18.dp)
             )
             .focusRequester(focusRequester)
             .onFocusChanged { focused = it.isFocused }
