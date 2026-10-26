@@ -2108,7 +2108,7 @@ private fun MovieTile(
         if (initialFocus) requestInitialFocus { focusRequester.requestFocus() }
     }
     val scale by animateFloatAsState(
-        targetValue = if (focused) 1.055f else 1f,
+        targetValue = if (focused) 1.035f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "movieTileScale"
     )
