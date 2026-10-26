@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.animateItemPlacement
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -946,7 +947,9 @@ private fun AuralisHome(
                 } else {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         itemsIndexed(watchlistMovies, key = { _, movie -> movie.id }) { index, movie ->
-                            MovieTile(movie, compact, index == 0, onFocused = { selectedMovieId = it.id }, onClick = { detailMovie = movie })
+                            Box(Modifier.animateItemPlacement()) {
+                                MovieTile(movie, compact, index == 0, onFocused = { selectedMovieId = it.id }, onClick = { detailMovie = movie })
+                            }
                         }
                     }
                 }
@@ -960,13 +963,15 @@ private fun AuralisHome(
                     Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         itemsIndexed(recentApps, key = { _, app -> app.packageName }) { index, app ->
-                            AppTile(
-                                app = app,
-                                width = tileWidth,
-                                compact = compact,
-                                initialFocus = featuredApp == null && index == 0,
-                                onClick = { onLaunch(app) }
-                            )
+                            Box(Modifier.animateItemPlacement()) {
+                                AppTile(
+                                    app = app,
+                                    width = tileWidth,
+                                    compact = compact,
+                                    initialFocus = featuredApp == null && index == 0,
+                                    onClick = { onLaunch(app) }
+                                )
+                            }
                         }
                     }
                 }
@@ -987,13 +992,15 @@ private fun AuralisHome(
                 } else {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         itemsIndexed(apps, key = { _, app -> app.packageName }) { index, app ->
-                            AppTile(
-                                app = app,
-                                width = tileWidth,
-                                compact = compact,
-                                initialFocus = featuredApp == null && index == 0,
-                                onClick = { onLaunch(app) }
-                            )
+                            Box(Modifier.animateItemPlacement()) {
+                                AppTile(
+                                    app = app,
+                                    width = tileWidth,
+                                    compact = compact,
+                                    initialFocus = featuredApp == null && index == 0,
+                                    onClick = { onLaunch(app) }
+                                )
+                            }
                         }
                     }
                 }
