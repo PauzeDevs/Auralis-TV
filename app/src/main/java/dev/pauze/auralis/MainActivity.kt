@@ -2196,7 +2196,21 @@ private fun AppTile(
             modifier = Modifier
                 .size(if (compact) 66.dp else 100.dp)
                 .clip(RoundedCornerShape(15.dp))
-                .background(Color(0xFF263344)),
+                .background(
+                    Brush.linearGradient(
+                        if (focused) listOf(Color(0xFF3C5878), Color(0xFF17283D))
+                        else listOf(Color(0xFF263344), Color(0xFF1B2430))
+                    )
+                )
+                .border(
+                    width = if (focused) 1.5.dp else 1.dp,
+                    brush = if (focused) {
+                        Brush.linearGradient(listOf(Color(0xFFEAF6FF), Color(0xFF83C7FF), Color(0xFFEAF6FF)))
+                    } else {
+                        Brush.linearGradient(listOf(Color(0x55FFFFFF), Color(0x1AFFFFFF)))
+                    },
+                    shape = RoundedCornerShape(15.dp)
+                ),
             contentAlignment = Alignment.Center
         ) {
             Image(
