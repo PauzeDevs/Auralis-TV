@@ -2095,8 +2095,9 @@ private fun MovieTile(
                 .clip(shape)
                 .background(Color(0xFF20242B))
                 .border(
-                    width = if (focused) 2.dp else 1.dp,
-                    color = if (focused) Accent else Color(0x55FFFFFF),
+                    width = if (focused) 2.5.dp else 1.dp,
+                    brush = if (focused) Brush.linearGradient(listOf(Color.White, Color(0xFF8CCBFF), Color.White))
+                        else Brush.linearGradient(listOf(Color(0x66FFFFFF), Color(0x22FFFFFF))),
                     shape = shape
                 )
         ) {
@@ -2173,10 +2174,16 @@ private fun AppTile(
             .width(width)
             .scale(scale)
             .clip(RoundedCornerShape(18.dp))
-            .background(if (focused) Color(0xFF34363B) else Color(0xFF202124))
+            .background(
+                Brush.verticalGradient(
+                    if (focused) listOf(Color(0xFFF0F6FF), Color(0xFFD5E8FF), Color(0xFF8FAED0))
+                    else listOf(Color(0xFF292D35), Color(0xFF191B20))
+                )
+            )
             .border(
                 width = if (focused) 2.dp else 1.dp,
-                color = if (focused) Accent else Color(0xFF303034),
+                brush = if (focused) Brush.linearGradient(listOf(Color.White, Color(0xFF9CCFFF), Color.White))
+                    else Brush.linearGradient(listOf(Color(0x55FFFFFF), Color(0x221FFFFFFF))),
                 shape = RoundedCornerShape(18.dp)
             )
             .focusRequester(focusRequester)
