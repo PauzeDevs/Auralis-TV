@@ -548,7 +548,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requestAdBlockVpn() {\n        val consent = android.net.VpnService.prepare(this)\n        if (consent != null) vpnConsentLauncher.launch(consent) else {\n            val serviceIntent = Intent(this, AdBlockVpnService::class.java)\n            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(serviceIntent) else startService(serviceIntent)\n        }\n    }\n\n    private fun openSystemSettings() {
+    private fun requestAdBlockVpn() {
+        val consent = android.net.VpnService.prepare(this)
+        if (consent != null) vpnConsentLauncher.launch(consent) else {
+            val serviceIntent = Intent(this, AdBlockVpnService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(serviceIntent) else startService(serviceIntent)
+        }
+    }
+
+    private fun openSystemSettings() {
         try {
             startActivity(Intent(android.provider.Settings.ACTION_SETTINGS))
         } catch (exception: ActivityNotFoundException) {
@@ -735,7 +743,8 @@ private fun AuralisHome(
     interactionRevision: State<Int>,
     onVoiceQueryConsumed: () -> Unit,
     onLaunch: (TvApp) -> Unit,
-    onOpenSettings: () -> Unit,\n    onEnableAdBlock: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onEnableAdBlock: () -> Unit,
     onSetAsHome: () -> Unit,
     onOpenMovie: (FeaturedMovie) -> Unit,
     onSearchOnProvider: (FeaturedMovie, StreamingProvider) -> Unit,
@@ -1059,7 +1068,8 @@ private fun AuralisHome(
                     onSelectProfile = { onSelectProfile(it); activeDrawer = null },
                     onAddProfile = { onAddProfile(profileName); profileName = "" },
                     onVoiceSearch = { searchOpen = true; onVoiceSearch(); activeDrawer = null },
-                    onSettings = { onOpenSettings(); activeDrawer = null },\n                    onAdBlock = { onEnableAdBlock(); activeDrawer = null },
+                    onSettings = { onOpenSettings(); activeDrawer = null },
+                    onAdBlock = { onEnableAdBlock(); activeDrawer = null },
                     onRefresh = { onRefreshApps(); activeDrawer = null },
                     onSetAsHome = { onSetAsHome(); activeDrawer = null },
                     onScreensaver = { activeDrawer = null; ambient = true },
@@ -1207,7 +1217,8 @@ private fun ControlCenter(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     FocusButton("Set as Home", false, onSetAsHome)
-                    FocusButton("Settings", false, onSettings)\n                    FocusButton("DNS Ad Block", false, onAdBlock)
+                    FocusButton("Settings", false, onSettings)
+                    FocusButton("DNS Ad Block", false, onAdBlock)
                 }
             }
             Text("Profiles", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
